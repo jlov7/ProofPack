@@ -1,0 +1,82 @@
+import type { Policy } from '@proofpack/core';
+
+export const demoPolicy: Policy = {
+  version: '0.1',
+  defaults: { decision: 'deny' },
+  rules: [
+    {
+      id: 'allow_read_workspace',
+      when: { event_type: 'fs.read', path_glob: 'workspace/**' },
+      decision: 'allow',
+      severity: 'low',
+      reason: 'Reading files inside workspace is allowed',
+    },
+    {
+      id: 'allow_tool_list_dir',
+      when: { event_type: 'tool.call', tool: 'list_dir' },
+      decision: 'allow',
+      severity: 'low',
+      reason: 'Directory listing tool is allowed',
+    },
+    {
+      id: 'hold_shell_exec',
+      when: { event_type: 'shell.exec' },
+      decision: 'hold',
+      severity: 'high',
+      reason: 'Shell execution requires human approval',
+    },
+    {
+      id: 'deny_network',
+      when: { event_type: 'net.http' },
+      decision: 'deny',
+      severity: 'critical',
+      reason: 'Network access is denied (exfiltration risk)',
+    },
+    {
+      id: 'allow_write_out',
+      when: { event_type: 'fs.write', path_glob: 'workspace/out/**' },
+      decision: 'allow',
+      severity: 'medium',
+      reason: 'Writes allowed only to workspace/out',
+    },
+  ],
+};
+
+export const demoPolicyYaml = `version: "0.1"
+defaults:
+  decision: deny
+rules:
+  - id: allow_read_workspace
+    when:
+      event_type: fs.read
+      path_glob: "workspace/**"
+    decision: allow
+    severity: low
+    reason: "Reading files inside workspace is allowed"
+  - id: allow_tool_list_dir
+    when:
+      event_type: tool.call
+      tool: list_dir
+    decision: allow
+    severity: low
+    reason: "Directory listing tool is allowed"
+  - id: hold_shell_exec
+    when:
+      event_type: shell.exec
+    decision: hold
+    severity: high
+    reason: "Shell execution requires human approval"
+  - id: deny_network
+    when:
+      event_type: net.http
+    decision: deny
+    severity: critical
+    reason: "Network access is denied (exfiltration risk)"
+  - id: allow_write_out
+    when:
+      event_type: fs.write
+      path_glob: "workspace/out/**"
+    decision: allow
+    severity: medium
+    reason: "Writes allowed only to workspace/out"
+`;

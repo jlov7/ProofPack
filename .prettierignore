@@ -1,0 +1,8 @@
+dist
+.next
+node_modules
+coverage
+pnpm-lock.yaml
+proofpack-starter-pack
+examples
+.specstory

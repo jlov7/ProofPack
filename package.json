@@ -1,0 +1,33 @@
+{
+  "name": "proofpack",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Verifiable, tamper-evident receipt + audit pack system for agent/tool runs",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @proofpack/api dev\" \"pnpm --filter @proofpack/web dev\"",
+    "check": "tsc --build && eslint . && prettier --check .",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "demo": "pnpm --filter @proofpack/cli demo",
+    "verify": "pnpm --filter @proofpack/cli verify"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.19.12",
+    "concurrently": "^9.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

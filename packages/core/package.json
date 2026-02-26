@@ -1,0 +1,36 @@
+{
+  "name": "@proofpack/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --build --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.2.0",
+    "@noble/hashes": "^1.7.0",
+    "archiver": "^7.0.0",
+    "canonicalize": "^2.0.0",
+    "js-yaml": "^4.1.0",
+    "micromatch": "^4.0.0",
+    "yauzl": "^3.2.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.0",
+    "@types/js-yaml": "^4.0.0",
+    "@types/micromatch": "^4.0.0",
+    "@types/yauzl": "^2.10.0",
+    "vitest": "^3.0.0"
+  }
+}

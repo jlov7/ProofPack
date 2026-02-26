@@ -1,0 +1,13 @@
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0001-4000-a000-000000000001","payload":{"model":"gpt-4o","session":"demo-session-01"},"ts":"2026-01-15T10:00:00.000Z","type":"run.start"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0002-4000-a000-000000000002","payload":{"path":"workspace/config.json"},"ts":"2026-01-15T10:00:01.000Z","type":"fs.read"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0003-4000-a000-000000000003","payload":{"path":"workspace/src/index.ts"},"ts":"2026-01-15T10:00:02.000Z","type":"fs.read"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0004-4000-a000-000000000004","payload":{"path":"workspace/../secrets.env"},"ts":"2026-01-15T10:00:03.000Z","type":"fs.read"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0005-4000-a000-000000000005","payload":{"path":"workspace/","tool":"list_dir"},"ts":"2026-01-15T10:00:05.000Z","type":"tool.call"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0006-4000-a000-000000000006","payload":{"command":"grep -r TODO workspace/"},"ts":"2026-01-15T10:00:08.000Z","type":"shell.exec"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0007-4000-a000-000000000007","payload":{"hold_id":"d3e0baa5-0006-4000-a000-000000000006","prompt":"Approve shell: grep -r TODO workspace/?"},"ts":"2026-01-15T10:00:09.000Z","type":"hold.request"}
+{"actor":"human-operator","event_id":"d3e0baa5-0008-4000-a000-000000000008","payload":{"approved_by":"human","hold_id":"d3e0baa5-0006-4000-a000-000000000006"},"ts":"2026-01-15T10:00:30.000Z","type":"hold.approve"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-0009-4000-a000-000000000009","payload":{"command":"grep -r TODO workspace/","result":"3 matches found"},"ts":"2026-01-15T10:00:31.000Z","type":"shell.exec"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-000a-4000-a000-00000000000a","payload":{"method":"GET","url":"https://api.example.com/data"},"ts":"2026-01-15T10:00:35.000Z","type":"net.http"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-000b-4000-a000-00000000000b","payload":{"bytes":1024,"path":"workspace/out/report.md"},"ts":"2026-01-15T10:00:40.000Z","type":"fs.write"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-000c-4000-a000-00000000000c","payload":{"bytes":256,"path":"workspace/out/summary.json"},"ts":"2026-01-15T10:00:41.000Z","type":"fs.write"}
+{"actor":"proofpack-demo-agent","event_id":"d3e0baa5-000d-4000-a000-00000000000d","payload":{"duration_ms":45000,"exit_code":0},"ts":"2026-01-15T10:00:45.000Z","type":"run.end"}

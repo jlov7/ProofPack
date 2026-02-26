@@ -1,0 +1,13 @@
+{"decision":"deny","event_id":"d3e0baa5-0001-4000-a000-000000000001","reason":"No matching rule (default deny)","rule_id":"_default","severity":"medium","ts":"2026-01-15T10:00:00.000Z"}
+{"decision":"allow","event_id":"d3e0baa5-0002-4000-a000-000000000002","reason":"Reading files inside workspace is allowed","rule_id":"allow_read_workspace","severity":"low","ts":"2026-01-15T10:00:01.000Z"}
+{"decision":"allow","event_id":"d3e0baa5-0003-4000-a000-000000000003","reason":"Reading files inside workspace is allowed","rule_id":"allow_read_workspace","severity":"low","ts":"2026-01-15T10:00:02.000Z"}
+{"decision":"deny","event_id":"d3e0baa5-0004-4000-a000-000000000004","reason":"No matching rule (default deny)","rule_id":"_default","severity":"medium","ts":"2026-01-15T10:00:03.000Z"}
+{"decision":"allow","event_id":"d3e0baa5-0005-4000-a000-000000000005","reason":"Directory listing tool is allowed","rule_id":"allow_tool_list_dir","severity":"low","ts":"2026-01-15T10:00:05.000Z"}
+{"decision":"hold","event_id":"d3e0baa5-0006-4000-a000-000000000006","reason":"Shell execution requires human approval","rule_id":"hold_shell_exec","severity":"high","ts":"2026-01-15T10:00:08.000Z"}
+{"decision":"deny","event_id":"d3e0baa5-0007-4000-a000-000000000007","reason":"No matching rule (default deny)","rule_id":"_default","severity":"medium","ts":"2026-01-15T10:00:09.000Z"}
+{"decision":"deny","event_id":"d3e0baa5-0008-4000-a000-000000000008","reason":"No matching rule (default deny)","rule_id":"_default","severity":"medium","ts":"2026-01-15T10:00:30.000Z"}
+{"decision":"hold","event_id":"d3e0baa5-0009-4000-a000-000000000009","reason":"Shell execution requires human approval","rule_id":"hold_shell_exec","severity":"high","ts":"2026-01-15T10:00:31.000Z"}
+{"decision":"deny","event_id":"d3e0baa5-000a-4000-a000-00000000000a","reason":"Network access is denied (exfiltration risk)","rule_id":"deny_network","severity":"critical","ts":"2026-01-15T10:00:35.000Z"}
+{"decision":"allow","event_id":"d3e0baa5-000b-4000-a000-00000000000b","reason":"Writes allowed only to workspace/out","rule_id":"allow_write_out","severity":"medium","ts":"2026-01-15T10:00:40.000Z"}
+{"decision":"allow","event_id":"d3e0baa5-000c-4000-a000-00000000000c","reason":"Writes allowed only to workspace/out","rule_id":"allow_write_out","severity":"medium","ts":"2026-01-15T10:00:41.000Z"}
+{"decision":"deny","event_id":"d3e0baa5-000d-4000-a000-00000000000d","reason":"No matching rule (default deny)","rule_id":"_default","severity":"medium","ts":"2026-01-15T10:00:45.000Z"}

@@ -36,6 +36,7 @@ jobs:
         run: pnpm audit --audit-level=high
 
   codeql:
+    if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

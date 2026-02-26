@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible defect in ProofPack
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken?
+      placeholder: Briefly describe the bug and expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include exact commands, files, and inputs.
+      placeholder: |
+        1. Run ...
+        2. Upload ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification evidence
+      description: Paste failing output, stack traces, or screenshots.
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node, pnpm versions
+      placeholder: macOS 15.0, Node 20.11.1, pnpm 10.29.3
+    validations:
+      required: true

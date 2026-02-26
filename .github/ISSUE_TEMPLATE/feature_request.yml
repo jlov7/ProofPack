@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a scoped enhancement to ProofPack
+title: '[Feature]: '
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user/problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should be built? Keep scope tight.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What options were considered and why this one?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: This does not introduce breaking pack-format changes without schema/version planning.
+          required: true
+        - label: This proposal includes a verification/testing strategy.
+          required: true

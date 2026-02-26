@@ -32,11 +32,11 @@ ProofPack is a focused research project with tight scope boundaries. Before inve
 
 ### Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| Node.js | ≥ 22 | Use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm) |
-| pnpm | ≥ 9 | Install with `npm i -g pnpm` |
-| Git | Any recent | |
+| Tool    | Version    | Notes                                                                            |
+| ------- | ---------- | -------------------------------------------------------------------------------- |
+| Node.js | ≥ 20       | Use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm) |
+| pnpm    | ≥ 9        | Install with `npm i -g pnpm`                                                     |
+| Git     | Any recent |                                                                                  |
 
 ### Setup
 
@@ -50,7 +50,7 @@ pnpm install
 
 # Start the full development stack
 pnpm dev
-# → API on http://localhost:5000
+# → API on http://localhost:3001
 # → Web UI on http://localhost:3000
 ```
 
@@ -58,8 +58,10 @@ pnpm dev
 
 ```bash
 pnpm dev          # Concurrent: API server + Next.js dev server
-pnpm test         # Run all 171 unit tests (Vitest)
+pnpm test         # Run all 175 unit tests (Vitest)
 pnpm e2e          # Run all 12 E2E tests (Playwright, auto-starts dev server)
+pnpm build        # Build core + cli + api + web
+pnpm ci           # check + test + build + e2e
 pnpm check        # TypeScript strict + ESLint + Prettier — must be clean before PR
 pnpm demo         # Generate fresh demo pack → packages/cli/examples/sample_runs/latest.proofpack/
 pnpm verify       # Verify the demo pack (should exit 0)
@@ -111,7 +113,7 @@ refactor/what-was-changed
 
 Every change must maintain the following invariants:
 
-### Unit tests (must stay at 171 passing — add new ones for new behavior)
+### Unit tests (must stay at 175 passing — add new ones for new behavior)
 
 ```bash
 pnpm test
@@ -134,10 +136,10 @@ If you add a new screen or significantly change existing UI behavior, add or upd
 ### The full quality gate
 
 ```bash
-pnpm check && pnpm test && pnpm e2e
+pnpm ci
 ```
 
-All three must pass before opening a PR. No exceptions.
+All quality gates must pass before opening a PR. No exceptions.
 
 ### After touching crypto or the pack format
 
@@ -162,7 +164,7 @@ If the pack format changes in any way, the golden fixture must be regenerated an
 2. **Fill out the PR template** — describe what changed, why, and how you tested it.
 3. **Checklist before requesting review:**
    - [ ] `pnpm check` passes (zero TypeScript errors, zero lint warnings, zero prettier diffs)
-   - [ ] `pnpm test` shows 171 passing (or more, if you added tests)
+   - [ ] `pnpm test` shows 175 passing (or more, if you added tests)
    - [ ] `pnpm e2e` shows 12 passing (or more, if you added tests)
    - [ ] `pnpm demo && pnpm verify` exits 0 (if you touched core, CLI, or the pack format)
    - [ ] No new `any` types introduced
@@ -239,26 +241,26 @@ ProofPack uses [Conventional Commits](https://www.conventionalcommits.org/). For
 
 ### Types
 
-| Type | When to use |
-|------|------------|
-| `feat` | New capability |
-| `fix` | Bug fix |
-| `test` | Adding or updating tests |
-| `docs` | Documentation only |
+| Type       | When to use                                 |
+| ---------- | ------------------------------------------- |
+| `feat`     | New capability                              |
+| `fix`      | Bug fix                                     |
+| `test`     | Adding or updating tests                    |
+| `docs`     | Documentation only                          |
 | `refactor` | Code reorganization without behavior change |
-| `perf` | Performance improvement |
-| `chore` | Build scripts, dependencies, config |
-| `ci` | CI/CD changes |
+| `perf`     | Performance improvement                     |
+| `chore`    | Build scripts, dependencies, config         |
+| `ci`       | CI/CD changes                               |
 
 ### Scopes
 
-| Scope | Maps to |
-|-------|---------|
+| Scope  | Maps to         |
+| ------ | --------------- |
 | `core` | `packages/core` |
-| `cli` | `packages/cli` |
-| `api` | `apps/api` |
-| `web` | `apps/web` |
-| `e2e` | `tests/e2e` |
+| `cli`  | `packages/cli`  |
+| `api`  | `apps/api`      |
+| `web`  | `apps/web`      |
+| `e2e`  | `tests/e2e`     |
 
 ### Examples
 

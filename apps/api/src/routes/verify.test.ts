@@ -15,16 +15,21 @@ function packToZipBuffer(pack: PackContents): Buffer {
 }
 
 /** Build a multipart form body with a file field */
-function buildMultipartPayload(zipBuffer: Buffer): {
+function buildMultipartPayload(
+  zipBuffer: Buffer,
+  options?: { filename?: string; mimeType?: string },
+): {
   body: Buffer;
   contentType: string;
 } {
   const boundary = '----ProofPackTestBoundary';
   const parts: Buffer[] = [];
+  const filename = options?.filename ?? 'pack.zip';
+  const mimeType = options?.mimeType ?? 'application/zip';
 
   parts.push(
     Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="pack.zip"\r\nContent-Type: application/zip\r\n\r\n`,
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`,
     ),
   );
   parts.push(zipBuffer);
@@ -111,5 +116,24 @@ describe('POST /api/verify', () => {
 
     // Fastify may return 400 for malformed multipart
     expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  it('returns 415 for non-zip file uploads', async () => {
+    const { body, contentType } = buildMultipartPayload(Buffer.from('not a zip'), {
+      filename: 'payload.txt',
+      mimeType: 'text/plain',
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+
+    expect(res.statusCode).toBe(415);
+    const json = res.json();
+    expect(json.ok).toBe(false);
+    expect(json.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
   });
 });

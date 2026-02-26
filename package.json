@@ -5,13 +5,18 @@
   "description": "Verifiable, tamper-evident receipt + audit pack system for agent/tool runs",
   "scripts": {
     "dev": "concurrently \"pnpm --filter @proofpack/api dev\" \"pnpm --filter @proofpack/web dev\"",
+    "build": "pnpm --filter @proofpack/core build && pnpm --filter @proofpack/cli build && pnpm --filter @proofpack/api build && pnpm --filter @proofpack/web build",
     "check": "tsc --build && eslint . && prettier --check .",
+    "format": "prettier --write .",
     "test": "vitest run",
-    "e2e": "playwright test",
+    "e2e": "env -u NO_COLOR playwright test",
+    "ci": "pnpm check && pnpm test && pnpm build && pnpm e2e",
+    "release:check": "pnpm run ci && pnpm verify -- ./examples/sample_runs/latest.proofpack",
     "demo": "pnpm --filter @proofpack/cli demo",
     "verify": "pnpm --filter @proofpack/cli verify"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.1.6",
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.19.12",
     "concurrently": "^9.0.0",

@@ -77,12 +77,14 @@ An attacker who modifies `decisions.jsonl` to change recorded allow/deny decisio
 An attacker who crafts a malicious `.zip` file with paths like `../../etc/passwd` to write files outside the intended extraction directory.
 
 **Mitigation:** Every zip entry path is checked before extraction:
+
 ```typescript
 const normalized = path.normalize(entryPath);
 if (path.isAbsolute(normalized) || normalized.startsWith('..')) {
   throw new ZipSlipError(entryPath);
 }
 ```
+
 Malicious paths are rejected before any bytes are written to disk.
 
 #### Adversary 6: Schema Injection Attacker
@@ -107,12 +109,12 @@ The following are explicitly outside ProofPack's threat model:
 
 ProofPack's security rests on the following standard assumptions:
 
-| Assumption | Hardness | Notes |
-|-----------|---------|-------|
-| Ed25519 EU-CMA | Discrete log over Curve25519 | 128-bit security level |
-| SHA-256 collision resistance | Pre-image/second-preimage hardness | 128-bit security for collision, 256-bit for pre-image |
-| SHA-256 pseudo-random function | Random oracle model | Used for Merkle domain separation and commitment scheme |
-| RFC 8785 determinism | Correctness of `canonicalize` library | Implementation risk, not cryptographic |
+| Assumption                     | Hardness                              | Notes                                                   |
+| ------------------------------ | ------------------------------------- | ------------------------------------------------------- |
+| Ed25519 EU-CMA                 | Discrete log over Curve25519          | 128-bit security level                                  |
+| SHA-256 collision resistance   | Pre-image/second-preimage hardness    | 128-bit security for collision, 256-bit for pre-image   |
+| SHA-256 pseudo-random function | Random oracle model                   | Used for Merkle domain separation and commitment scheme |
+| RFC 8785 determinism           | Correctness of `canonicalize` library | Implementation risk, not cryptographic                  |
 
 **Algorithm choices:**
 
@@ -166,14 +168,14 @@ The manifest is protected transitively: the receipt is part of the pack, the rec
 
 All data from untrusted sources is validated with Zod before use:
 
-| Source | Validation |
-|--------|-----------|
-| `manifest.json` | `ManifestSchema.parse()` |
-| `receipt.json` | `ReceiptSchema.parse()` |
-| `events.jsonl` (each line) | `EventSchema.parse()` (per line) |
-| `decisions.jsonl` (each line) | `DecisionSchema.parse()` (per line) |
-| `policy.yml` | `PolicySchema.parse()` (after YAML parse) |
-| HTTP multipart upload | Size limit + zip-slip check + schema validation |
+| Source                        | Validation                                      |
+| ----------------------------- | ----------------------------------------------- |
+| `manifest.json`               | `ManifestSchema.parse()`                        |
+| `receipt.json`                | `ReceiptSchema.parse()`                         |
+| `events.jsonl` (each line)    | `EventSchema.parse()` (per line)                |
+| `decisions.jsonl` (each line) | `DecisionSchema.parse()` (per line)             |
+| `policy.yml`                  | `PolicySchema.parse()` (after YAML parse)       |
+| HTTP multipart upload         | Size limit + zip-slip check + schema validation |
 
 Zod's default behavior strips unknown fields (`strip` mode). This means extra fields added by an attacker are silently dropped before the data reaches any business logic. Malformed fields throw a `ZodError` with a precise error path.
 
@@ -220,13 +222,14 @@ Salts must be generated from a cryptographically secure random number generator.
 ### What a public pack reveals
 
 In a public (redacted) pack:
+
 - **Event type, timestamp, and actor** are always visible
 - **The count of events** is visible
 - **The Merkle tree structure** is visible (reveals event ordering)
 - **The policy decisions** are visible (allow/deny/hold per event)
 - **Individual payload content** is hidden behind commitments
 
-A public pack does not reveal what was in a payload, but it does reveal that an event of that type occurred at that time with that decision. A sophisticated analyst could infer some payload content from the event type and decision (e.g., a `fs.read` with `decision: deny` at a timestamp was likely a path traversal attempt). This is expected behavior — the disclosure mechanism hides payload *content*, not event *metadata*.
+A public pack does not reveal what was in a payload, but it does reveal that an event of that type occurred at that time with that decision. A sophisticated analyst could infer some payload content from the event type and decision (e.g., a `fs.read` with `decision: deny` at a timestamp was likely a path traversal attempt). This is expected behavior — the disclosure mechanism hides payload _content_, not event _metadata_.
 
 ---
 
@@ -246,7 +249,7 @@ ProofPack records the timestamps provided by the agent. It does not verify that 
 
 ### The pack producer controls what events are logged
 
-ProofPack verifies that the log it receives hasn't been tampered with *after signing*. It cannot detect events that were never logged in the first place. An agent that simply doesn't emit an event for a sensitive action will produce a pack that verifies correctly.
+ProofPack verifies that the log it receives hasn't been tampered with _after signing_. It cannot detect events that were never logged in the first place. An agent that simply doesn't emit an event for a sensitive action will produce a pack that verifies correctly.
 
 **Mitigation:** This is inherent to any post-hoc logging system. Independent monitoring, kernel-level auditing, or hardware attestation would be required to guarantee complete event capture.
 
@@ -276,6 +279,7 @@ You will receive an acknowledgment within 48 hours. We ask that you give us reas
 ### What to include in a report
 
 A good vulnerability report includes:
+
 - **Affected component:** `packages/core`, `apps/api`, `apps/web`, or other
 - **Attack type:** e.g., signature bypass, zip-slip, schema injection, policy bypass
 - **Reproduction:** A minimal code snippet or test that demonstrates the vulnerability
@@ -284,18 +288,18 @@ A good vulnerability report includes:
 
 ### Scope
 
-| Target | In Scope |
-|--------|---------|
-| Cryptographic verification logic | ✅ |
-| Policy engine bypass | ✅ |
-| Zip-slip or path traversal | ✅ |
-| Schema injection / prototype pollution | ✅ |
-| API authentication / authorization | ✅ |
-| Third-party dependencies (via dependabot) | ✅ |
-| Denial of service with large uploads | Limited scope |
-| Social engineering / phishing | ❌ |
-| Physical access attacks | ❌ |
+| Target                                    | In Scope      |
+| ----------------------------------------- | ------------- |
+| Cryptographic verification logic          | ✅            |
+| Policy engine bypass                      | ✅            |
+| Zip-slip or path traversal                | ✅            |
+| Schema injection / prototype pollution    | ✅            |
+| API authentication / authorization        | ✅            |
+| Third-party dependencies (via dependabot) | ✅            |
+| Denial of service with large uploads      | Limited scope |
+| Social engineering / phishing             | ❌            |
+| Physical access attacks                   | ❌            |
 
 ---
 
-*This document is maintained alongside the codebase. If you find any inaccuracies or gaps, please open an issue or PR.*
+_This document is maintained alongside the codebase. If you find any inaccuracies or gaps, please open an issue or PR._

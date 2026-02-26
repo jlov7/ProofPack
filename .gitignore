@@ -26,6 +26,7 @@ pnpm-debug.log*
 
 # IDE / tools
 .specstory/
+.codex/
 
 # Source material (original spec input — not part of the project itself)
 proofpack-starter-pack/

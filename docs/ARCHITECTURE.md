@@ -100,11 +100,11 @@ The atomic unit of a ProofPack. Every action an agent takes produces one event:
 
 ```typescript
 interface Event {
-  event_id: string;           // UUID v4, globally unique
-  ts: string;                 // ISO 8601 timestamp (UTC)
-  type: string;               // "run.start" | "fs.read" | "shell.exec" | ...
-  actor: string;              // agent identifier
-  payload: Record<string, unknown>;  // event-specific data
+  event_id: string; // UUID v4, globally unique
+  ts: string; // ISO 8601 timestamp (UTC)
+  type: string; // "run.start" | "fs.read" | "shell.exec" | ...
+  actor: string; // agent identifier
+  payload: Record<string, unknown>; // event-specific data
   payload_commitment?: string; // SHA-256 hex — present in public packs
 }
 ```
@@ -117,18 +117,18 @@ Top-level metadata for the pack:
 
 ```typescript
 interface Manifest {
-  schema_version: "1.0";
-  run_id: string;             // UUID v4, identifies this run
-  created_at: string;         // ISO 8601
+  schema_version: '1.0';
+  run_id: string; // UUID v4, identifies this run
+  created_at: string; // ISO 8601
   producer: {
-    name: string;             // e.g. "proofpack-demo"
-    version: string;          // semver
+    name: string; // e.g. "proofpack-demo"
+    version: string; // semver
   };
   event_count: number;
   artifact: {
-    events_sha256: string;    // SHA-256 of events.jsonl bytes
-    receipt_sha256: string;   // SHA-256 of receipt.json bytes
-    manifest_sha256: string;  // deliberately empty — avoids circular hash
+    events_sha256: string; // SHA-256 of events.jsonl bytes
+    receipt_sha256: string; // SHA-256 of receipt.json bytes
+    manifest_sha256: string; // deliberately empty — avoids circular hash
   };
 }
 ```
@@ -144,18 +144,18 @@ interface SignedReceipt {
   signed_block: {
     run_id: string;
     merkle_tree: {
-      root_hash: string;       // hex
+      root_hash: string; // hex
       tree_size: number;
     };
     policy: {
-      policy_sha256: string;   // SHA-256 of policy.yml bytes
+      policy_sha256: string; // SHA-256 of policy.yml bytes
       decisions_sha256: string; // SHA-256 of decisions.jsonl bytes
     };
   };
   signature: {
-    algorithm: "Ed25519";
-    public_key: string;        // base64
-    sig: string;               // base64 — Ed25519(RFC8785(signed_block))
+    algorithm: 'Ed25519';
+    public_key: string; // base64
+    sig: string; // base64 — Ed25519(RFC8785(signed_block))
   };
 }
 ```
@@ -274,6 +274,7 @@ decisions_sha256 = SHA-256(bytes of decisions.jsonl)
 ```
 
 This ensures that:
+
 1. The policy cannot be swapped out — any change to `policy.yml` invalidates the receipt.
 2. The decisions cannot be altered — any change to `decisions.jsonl` invalidates the receipt.
 3. Both are verified together with the Merkle tree, meaning the policy, events, and decisions are cryptographically bound into a single artifact.
@@ -350,19 +351,19 @@ The policy engine provides **real-time authorization decisions** for each event.
 
 **Matchers:**
 
-| Matcher | Type | Evaluation |
-|---------|------|-----------|
-| `event_type` | string | Exact match against `event.type` |
-| `tool` | string | Exact match against `event.payload.tool` |
-| `path_glob` | string | `micromatch.isMatch(event.payload.path, glob)` |
-| `contains` | string | Substring of `JSON.stringify(event.payload)` |
+| Matcher      | Type   | Evaluation                                     |
+| ------------ | ------ | ---------------------------------------------- |
+| `event_type` | string | Exact match against `event.type`               |
+| `tool`       | string | Exact match against `event.payload.tool`       |
+| `path_glob`  | string | `micromatch.isMatch(event.payload.path, glob)` |
+| `contains`   | string | Substring of `JSON.stringify(event.payload)`   |
 
 **Security property: path traversal blocking in the engine.** If a `path_glob` rule would match, but `event.payload.path` contains `..`, the match is rejected. This means even a permissive glob like `workspace/**` will not match `workspace/../secrets.env` — path traversal attempts always fall through to default-deny.
 
 **Example policy (YAML):**
 
 ```yaml
-version: "1.0"
+version: '1.0'
 defaults:
   decision: deny
 
@@ -370,17 +371,17 @@ rules:
   - id: allow-workspace-reads
     when:
       event_type: fs.read
-      path_glob: "workspace/**"
+      path_glob: 'workspace/**'
     decision: allow
     severity: low
-    reason: "Workspace reads permitted"
+    reason: 'Workspace reads permitted'
 
   - id: deny-net-http
     when:
       event_type: net.http
     decision: deny
     severity: high
-    reason: "Network access not permitted"
+    reason: 'Network access not permitted'
 ```
 
 ---
@@ -422,7 +423,7 @@ The web UI is a **Next.js 15 App Router** application with the following archite
 interface PackStore {
   pack: PackContents | null;
   report: VerificationReport | null;
-  selectedEvent: string | null;  // event_id
+  selectedEvent: string | null; // event_id
 
   loadPack: (file: File) => Promise<void>;
   loadDemoPack: () => Promise<void>;
@@ -437,14 +438,14 @@ A single Zustand store holds the loaded pack and report. Navigating between scre
 
 The Next.js App Router default is React Server Components (RSC). ProofPack uses `"use client"` only where necessary:
 
-| Component | Strategy | Reason |
-|-----------|----------|--------|
-| Layout, nav | Server | Static shell, no interactivity |
-| DropZone | Client | File drag-drop API |
-| EventList | Client | Zustand subscription, virtual scroll |
-| MerkleViz | Client | SVG interaction, animation state |
-| CommandPalette | Client | Key listener, open/close state |
-| StatusChip | Client | Animation, Zustand subscription |
+| Component      | Strategy | Reason                               |
+| -------------- | -------- | ------------------------------------ |
+| Layout, nav    | Server   | Static shell, no interactivity       |
+| DropZone       | Client   | File drag-drop API                   |
+| EventList      | Client   | Zustand subscription, virtual scroll |
+| MerkleViz      | Client   | SVG interaction, animation state     |
+| CommandPalette | Client   | Key listener, open/close state       |
+| StatusChip     | Client   | Animation, Zustand subscription      |
 
 ### API Routes
 

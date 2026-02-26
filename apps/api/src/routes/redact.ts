@@ -9,6 +9,8 @@ import {
 import { unzipToTemp, findPackRoot, cleanupTemp, zipPack, ZipSlipError } from '../utils/zip.js';
 import { sendError } from '../utils/errors.js';
 
+const ZIP_MIME_TYPES = new Set(['application/zip', 'application/x-zip-compressed']);
+
 /** Ephemeral keypair for re-signing redacted packs */
 const redactSeed = new Uint8Array(32);
 redactSeed[0] = 0xaa;
@@ -21,6 +23,18 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
     const data = await request.file();
     if (!data) {
       return sendError(reply, 400, 'NO_FILE', 'No file uploaded', 'Upload a .zip ProofPack file');
+    }
+
+    const filename = data.filename?.toLowerCase() ?? '';
+    const isZipMimeType = ZIP_MIME_TYPES.has(data.mimetype);
+    if (!isZipMimeType && !filename.endsWith('.zip')) {
+      return sendError(
+        reply,
+        415,
+        'UNSUPPORTED_MEDIA_TYPE',
+        `Unsupported upload type: ${data.mimetype || 'unknown'}`,
+        'Upload a .zip ProofPack file',
+      );
     }
 
     const buffer = await data.toBuffer();

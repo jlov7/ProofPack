@@ -11,10 +11,10 @@
 
 **Verifiable receipts for AI agent runs**
 
-*Cryptographically signed · Merkle-audited · Policy-enforced · Offline-verifiable*
+_Cryptographically signed · Merkle-audited · Policy-enforced · Offline-verifiable_
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Unit Tests](https://img.shields.io/badge/unit_tests-171_passing-22c55e?logo=vitest&logoColor=white)](./packages)
+[![Unit Tests](https://img.shields.io/badge/unit_tests-175_passing-22c55e?logo=vitest&logoColor=white)](./packages)
 [![E2E Tests](https://img.shields.io/badge/e2e_tests-12_passing-22c55e?logo=playwright&logoColor=white)](./tests/e2e)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
@@ -58,10 +58,10 @@ No black boxes. No "trust me, the AI did the right thing." **Cryptographic proof
 
 AI agents are increasingly autonomous. They read your codebase, write files, call APIs, execute shell commands, and make decisions that affect real systems. Yet today there is **no standard way to answer the most important questions about an agent run**:
 
-- *What exactly did the agent do, in what order, with what inputs and outputs?*
-- *Was the agent operating within its approved policy when it did those things?*
-- *Has this audit log been tampered with since it was produced?*
-- *Can I share evidence of what happened without revealing sensitive payload data?*
+- _What exactly did the agent do, in what order, with what inputs and outputs?_
+- _Was the agent operating within its approved policy when it did those things?_
+- _Has this audit log been tampered with since it was produced?_
+- _Can I share evidence of what happened without revealing sensitive payload data?_
 
 Logs can be deleted. Databases can be edited. `STDOUT` scrolls away. Even well-intentioned systems leave no cryptographic trail that an independent third party could verify.
 
@@ -114,10 +114,10 @@ Verification is **entirely offline**. No network calls. No ProofPack servers. Th
 
 ### Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | ≥ 20 | [nodejs.org](https://nodejs.org) |
-| pnpm | ≥ 9 | `npm i -g pnpm` |
+| Tool    | Version | Install                          |
+| ------- | ------- | -------------------------------- |
+| Node.js | ≥ 20    | [nodejs.org](https://nodejs.org) |
+| pnpm    | ≥ 9     | `npm i -g pnpm`                  |
 
 ### Install
 
@@ -232,12 +232,12 @@ graph TB
 
 The system is a **TypeScript monorepo** with four packages sharing a single core library:
 
-| Package | Role |
-|---------|------|
+| Package           | Role                                                                  |
+| ----------------- | --------------------------------------------------------------------- |
 | `@proofpack/core` | Cryptography, pack generation, verification, policy engine, redaction |
-| `@proofpack/cli` | `pnpm demo` and `pnpm verify` terminal commands |
-| `@proofpack/api` | Fastify REST server (local dev, CLI tooling) |
-| `@proofpack/web` | Next.js 15 web application (7 screens, dark UI) |
+| `@proofpack/cli`  | `pnpm demo` and `pnpm verify` terminal commands                       |
+| `@proofpack/api`  | Fastify REST server (local dev, CLI tooling)                          |
+| `@proofpack/web`  | Next.js 15 web application (7 screens, dark UI)                       |
 
 ---
 
@@ -308,6 +308,7 @@ A ProofPack bundle is a plain `.zip` archive with a deterministic directory stru
 ```
 
 The `signed_block` is serialized with **RFC 8785 JSON Canonicalization** before signing, ensuring the same bytes are produced regardless of key ordering or whitespace.
+
 </details>
 
 <details>
@@ -320,35 +321,37 @@ The `signed_block` is serialized with **RFC 8785 JSON Canonicalization** before 
 ```
 
 Each line is a **complete event** with a UUID, ISO-8601 timestamp, type, actor, and structured payload.
+
 </details>
 
 <details>
 <summary><strong>policy.yml</strong> — the rules that governed the run</summary>
 
 ```yaml
-version: "0.1"
+version: '0.1'
 defaults:
-  decision: deny      # default-deny: anything not explicitly allowed is blocked
+  decision: deny # default-deny: anything not explicitly allowed is blocked
 
 rules:
   - id: allow_read_workspace
-    when: { event_type: fs.read, path_glob: "workspace/**" }
+    when: { event_type: fs.read, path_glob: 'workspace/**' }
     decision: allow
     severity: low
-    reason: "Allow reading files inside workspace"
+    reason: 'Allow reading files inside workspace'
 
   - id: hold_shell_exec
     when: { event_type: shell.exec }
     decision: hold
     severity: medium
-    reason: "Shell commands require human approval"
+    reason: 'Shell commands require human approval'
 
   - id: deny_network
     when: { event_type: net.http }
     decision: deny
     severity: high
-    reason: "Network access is not allowed"
+    reason: 'Network access is not allowed'
 ```
+
 </details>
 
 ---
@@ -393,14 +396,14 @@ sequenceDiagram
 
 ### The Six Checks
 
-| # | Check | What it proves |
-|---|-------|----------------|
-| 1 | `manifest.schema` | The bundle is structurally valid; all required files are present and well-formed |
-| 2 | `receipt.signature` | The signed block was produced by the private key corresponding to the stated public key — and has not been altered since |
-| 3 | `merkle.root` | The event log has not been modified, reordered, or truncated since signing |
-| 4 | `merkle.inclusion_all` | Each individual event is genuinely part of the signed tree — no events were inserted |
-| 5 | `policy.hash` | The policy rules and the per-event decisions have not been changed since signing |
-| 6 | `disclosure.openings` | Each revealed payload actually corresponds to its commitment hash |
+| #   | Check                  | What it proves                                                                                                           |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `manifest.schema`      | The bundle is structurally valid; all required files are present and well-formed                                         |
+| 2   | `receipt.signature`    | The signed block was produced by the private key corresponding to the stated public key — and has not been altered since |
+| 3   | `merkle.root`          | The event log has not been modified, reordered, or truncated since signing                                               |
+| 4   | `merkle.inclusion_all` | Each individual event is genuinely part of the signed tree — no events were inserted                                     |
+| 5   | `policy.hash`          | The policy rules and the per-event decisions have not been changed since signing                                         |
+| 6   | `disclosure.openings`  | Each revealed payload actually corresponds to its commitment hash                                                        |
 
 ---
 
@@ -563,21 +566,21 @@ Generate a complete 13-event demo pack with a deterministic keypair and fixed `r
 
 **The 13 demo events cover every major event type and policy outcome:**
 
-| # | Type | Payload | Policy Decision |
-|---|------|---------|----------------|
-| 1 | `run.start` | `model: gpt-4o` | — |
-| 2 | `fs.read` | `workspace/config.json` | allow |
-| 3 | `fs.read` | `workspace/src/index.ts` | allow |
-| 4 | `fs.read` | `workspace/../secrets.env` | deny |
-| 5 | `tool.call` | `list_dir workspace/` | allow |
-| 6 | `shell.exec` | `grep -r TODO workspace/` | hold |
-| 7 | `hold.request` | Approval prompt | — |
-| 8 | `hold.approve` | Approved by human | — |
-| 9 | `shell.exec` | `grep -r TODO workspace/` *(post-approval)* | allow |
-| 10 | `net.http` | `https://api.example.com/data` | **deny** |
-| 11 | `fs.write` | `workspace/out/report.md` | allow |
-| 12 | `fs.write` | `workspace/out/summary.json` | allow |
-| 13 | `run.end` | `exit_code: 0` | — |
+| #   | Type           | Payload                                     | Policy Decision |
+| --- | -------------- | ------------------------------------------- | --------------- |
+| 1   | `run.start`    | `model: gpt-4o`                             | —               |
+| 2   | `fs.read`      | `workspace/config.json`                     | allow           |
+| 3   | `fs.read`      | `workspace/src/index.ts`                    | allow           |
+| 4   | `fs.read`      | `workspace/../secrets.env`                  | deny            |
+| 5   | `tool.call`    | `list_dir workspace/`                       | allow           |
+| 6   | `shell.exec`   | `grep -r TODO workspace/`                   | hold            |
+| 7   | `hold.request` | Approval prompt                             | —               |
+| 8   | `hold.approve` | Approved by human                           | —               |
+| 9   | `shell.exec`   | `grep -r TODO workspace/` _(post-approval)_ | allow           |
+| 10  | `net.http`     | `https://api.example.com/data`              | **deny**        |
+| 11  | `fs.write`     | `workspace/out/report.md`                   | allow           |
+| 12  | `fs.write`     | `workspace/out/summary.json`                | allow           |
+| 13  | `run.end`      | `exit_code: 0`                              | —               |
 
 ### `pnpm verify -- <path>`
 
@@ -623,28 +626,39 @@ Upload a `.proofpack.zip` and receive a full verification report.
     "producer": { "name": "proofpack-demo", "version": "0.1.0" }
   },
   "checks": [
-    { "name": "manifest.schema",      "ok": true, "details": {} },
-    { "name": "receipt.signature",    "ok": true, "details": { "public_key": "xj2W..." } },
-    { "name": "merkle.root",          "ok": true, "details": { "tree_size": 13 } },
+    { "name": "manifest.schema", "ok": true, "details": {} },
+    { "name": "receipt.signature", "ok": true, "details": { "public_key": "xj2W..." } },
+    { "name": "merkle.root", "ok": true, "details": { "tree_size": 13 } },
     { "name": "merkle.inclusion_all", "ok": true, "details": { "verified_events": 13 } },
-    { "name": "policy.hash",          "ok": true, "details": {} },
-    { "name": "disclosure.openings",  "ok": true, "details": { "skipped": true } }
+    { "name": "policy.hash", "ok": true, "details": {} },
+    { "name": "disclosure.openings", "ok": true, "details": { "skipped": true } }
   ],
   "events_preview": [
-    { "event_id": "d3e0baa5-0001-...", "ts": "...", "type": "run.start", "summary": "Agent start: model=gpt-4o" },
-    { "event_id": "d3e0baa5-000a-...", "ts": "...", "type": "net.http",  "summary": "GET https://api.example.com/data", "decision": "deny" }
+    {
+      "event_id": "d3e0baa5-0001-...",
+      "ts": "...",
+      "type": "run.start",
+      "summary": "Agent start: model=gpt-4o"
+    },
+    {
+      "event_id": "d3e0baa5-000a-...",
+      "ts": "...",
+      "type": "net.http",
+      "summary": "GET https://api.example.com/data",
+      "decision": "deny"
+    }
   ]
 }
 ```
 
 **Error responses:**
 
-| Status | Code | Description |
-|--------|------|-------------|
-| 400 | `NO_FILE` | No file attached to the request |
-| 400 | `ZIP_SLIP` | Zip contains path traversal (`../`) — rejected for security |
-| 400 | `INVALID_PACK` | Archive is missing required files |
-| 413 | — | File exceeds 50 MB limit |
+| Status | Code           | Description                                                 |
+| ------ | -------------- | ----------------------------------------------------------- |
+| 400    | `NO_FILE`      | No file attached to the request                             |
+| 400    | `ZIP_SLIP`     | Zip contains path traversal (`../`) — rejected for security |
+| 400    | `INVALID_PACK` | Archive is missing required files                           |
+| 413    | —              | File exceeds 50 MB limit                                    |
 
 ---
 
@@ -739,57 +753,58 @@ proofpack/
 
 ### Why These Libraries?
 
-| Area | Library | Reason |
-|------|---------|--------|
-| **Ed25519** | `@noble/ed25519` v2 | Audited, pure TypeScript, isomorphic (Node + browser), zero native deps |
-| **SHA-256** | `@noble/hashes` | Same audit family as ed25519; consistent API |
-| **JSON Canon.** | `canonicalize` | Reference implementation of RFC 8785 |
-| **Validation** | `zod` | Runtime schema validation at all trust boundaries |
-| **Policy YAML** | `js-yaml` + `micromatch` | Battle-tested YAML parser; safe glob matching |
-| **Zip I/O** | `yauzl` + `archiver` | Streaming zip with zip-slip protection |
-| **HTTP API** | `fastify` v5 | TypeScript-native, `inject()` for testing, built-in multipart |
-| **UI Framework** | `next.js` 15 | App Router, React 19, server components, Vercel-native |
-| **State** | `zustand` | Minimal cross-screen state without prop drilling |
-| **Styling** | `tailwindcss` v4 | Utility-first; CSS variables for dark theme |
-| **Event List** | `@tanstack/react-virtual` | Handles 100k+ rows without DOM bloat |
-| **Cmd Palette** | `cmdk` | The same component library used by Vercel, Linear, etc. |
-| **Unit Tests** | `vitest` | Fast, ESM-native, monorepo-aware workspace runner |
-| **E2E Tests** | `playwright` | Reliable cross-browser automation with trace-on-retry |
+| Area             | Library                   | Reason                                                                  |
+| ---------------- | ------------------------- | ----------------------------------------------------------------------- |
+| **Ed25519**      | `@noble/ed25519` v2       | Audited, pure TypeScript, isomorphic (Node + browser), zero native deps |
+| **SHA-256**      | `@noble/hashes`           | Same audit family as ed25519; consistent API                            |
+| **JSON Canon.**  | `canonicalize`            | Reference implementation of RFC 8785                                    |
+| **Validation**   | `zod`                     | Runtime schema validation at all trust boundaries                       |
+| **Policy YAML**  | `js-yaml` + `micromatch`  | Battle-tested YAML parser; safe glob matching                           |
+| **Zip I/O**      | `yauzl` + `archiver`      | Streaming zip with zip-slip protection                                  |
+| **HTTP API**     | `fastify` v5              | TypeScript-native, `inject()` for testing, built-in multipart           |
+| **UI Framework** | `next.js` 15              | App Router, React 19, server components, Vercel-native                  |
+| **State**        | `zustand`                 | Minimal cross-screen state without prop drilling                        |
+| **Styling**      | `tailwindcss` v4          | Utility-first; CSS variables for dark theme                             |
+| **Event List**   | `@tanstack/react-virtual` | Handles 100k+ rows without DOM bloat                                    |
+| **Cmd Palette**  | `cmdk`                    | The same component library used by Vercel, Linear, etc.                 |
+| **Unit Tests**   | `vitest`                  | Fast, ESM-native, monorepo-aware workspace runner                       |
+| **E2E Tests**    | `playwright`              | Reliable cross-browser automation with trace-on-retry                   |
 
 ### Security Choices
 
-| Decision | Detail |
-|----------|--------|
-| **Default-deny policy** | Unless a rule explicitly allows an action, it is denied |
-| **Zip-slip protection** | Every archive entry is validated; `../` paths throw before extraction |
-| **No circular hashing** | `artifact.manifest_sha256` is empty in the signed block to avoid a circular dependency |
-| **Salt per payload** | Random 32-byte salt prevents rainbow table attacks on redacted payloads |
-| **RFC 8785 canonicalization** | Deterministic serialization closes key-reordering attacks |
+| Decision                      | Detail                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| **Default-deny policy**       | Unless a rule explicitly allows an action, it is denied                                |
+| **Zip-slip protection**       | Every archive entry is validated; `../` paths throw before extraction                  |
+| **No circular hashing**       | `artifact.manifest_sha256` is empty in the signed block to avoid a circular dependency |
+| **Salt per payload**          | Random 32-byte salt prevents rainbow table attacks on redacted payloads                |
+| **RFC 8785 canonicalization** | Deterministic serialization closes key-reordering attacks                              |
 
 ---
 
 ## Testing
 
-### Unit Tests — 171 tests across 13 files
+### Unit Tests — 175 tests across 14 files
 
 ```bash
 pnpm test
 ```
 
-| File | What it covers |
-|------|---------------|
-| `hash.test.ts` | SHA-256, leaf/node hash with known-answer vectors |
-| `canonical.test.ts` | RFC 8785 test vectors (numbers, unicode, key ordering) |
-| `ed25519.test.ts` | Sign→verify round-trip; bad sig; mutated message |
-| `merkle.test.ts` | Trees of 1, 2, 3, 7, 8, 13 leaves; inclusion proof round-trips |
-| `schemas.test.ts` | Zod accepts valid shapes; rejects malformed input |
-| `verifier.test.ts` | Golden fixture → all 6 checks pass |
-| `policy.test.ts` | Demo policy classifies all 13 event types correctly |
-| `redactor.test.ts` | Redacted pack removes payloads; commitments verify |
-| `disclosure.test.ts` | Correct opening validates; wrong salt fails |
-| `demo.test.ts` | Generate pack → load → verify → all checks pass |
-| `verify.test.ts` | Golden fixture → exit 0; tampered → exit 1 |
-| API route tests | Fastify inject: verify, redact, demo endpoints |
+| File                 | What it covers                                                 |
+| -------------------- | -------------------------------------------------------------- |
+| `hash.test.ts`       | SHA-256, leaf/node hash with known-answer vectors              |
+| `canonical.test.ts`  | RFC 8785 test vectors (numbers, unicode, key ordering)         |
+| `ed25519.test.ts`    | Sign→verify round-trip; bad sig; mutated message               |
+| `merkle.test.ts`     | Trees of 1, 2, 3, 7, 8, 13 leaves; inclusion proof round-trips |
+| `schemas.test.ts`    | Zod accepts valid shapes; rejects malformed input              |
+| `verifier.test.ts`   | Golden fixture → all 6 checks pass                             |
+| `policy.test.ts`     | Demo policy classifies all 13 event types correctly            |
+| `redactor.test.ts`   | Redacted pack removes payloads; commitments verify             |
+| `disclosure.test.ts` | Correct opening validates; wrong salt fails                    |
+| `demo.test.ts`       | Generate pack → load → verify → all checks pass                |
+| `verify.test.ts`     | Golden fixture → exit 0; tampered → exit 1                     |
+| `server.test.ts`     | Health endpoint + upload size guard behavior                   |
+| API route tests      | Fastify inject: verify, redact, demo endpoints                 |
 
 ### E2E Tests — 12 tests across 4 files
 
@@ -797,19 +812,21 @@ pnpm test
 pnpm e2e
 ```
 
-| File | What it covers |
-|------|---------------|
-| `demo-flow.spec.ts` | Try demo pack → VERIFIED → Timeline → Proofs → Policy → Export |
-| `timeline.spec.ts` | 13 events visible; filter by decision; search by type |
-| `disclosure.spec.ts` | Toggle private→public; generate public pack; re-verify |
-| `command-palette.spec.ts` | `/` opens palette; navigate to Timeline; `Esc` closes |
+| File                      | What it covers                                                 |
+| ------------------------- | -------------------------------------------------------------- |
+| `demo-flow.spec.ts`       | Try demo pack → VERIFIED → Timeline → Proofs → Policy → Export |
+| `timeline.spec.ts`        | 13 events visible; filter by decision; search by type          |
+| `disclosure.spec.ts`      | Toggle private→public; generate public pack; re-verify         |
+| `command-palette.spec.ts` | `/` opens palette; navigate to Timeline; `Esc` closes          |
 
 ### Quality Gates
 
 ```bash
 pnpm check     # TypeScript strict + ESLint + Prettier — must be clean
-pnpm test      # All 171 unit tests
+pnpm test      # All 175 unit tests
+pnpm build     # Build core + cli + api + web
 pnpm e2e       # All 12 E2E tests (starts dev server automatically)
+pnpm ci        # check + test + build + e2e
 ```
 
 ---
@@ -824,14 +841,15 @@ ProofPack is a focused research project. Contributions that stay within scope ar
 git clone https://github.com/your-username/proofpack
 cd proofpack
 pnpm install
-pnpm dev        # API on :5000, web on :3000
+pnpm dev        # API on :3001, web on :3000
 ```
 
 ### Before Opening a PR
 
 ```bash
 pnpm check     # zero warnings
-pnpm test      # 171 passing
+pnpm test      # 175 passing
+pnpm build     # all packages build cleanly
 pnpm e2e       # 12 passing
 ```
 
@@ -851,7 +869,7 @@ pnpm e2e       # 12 passing
 
 ### Commit Style
 
-[Conventional Commits](https://www.conventionalcommits.org/) — imperative mood, explain *why* not *what*.
+[Conventional Commits](https://www.conventionalcommits.org/) — imperative mood, explain _why_ not _what_.
 
 ```
 feat(core): add consistency proof support for append-only streams
@@ -865,13 +883,14 @@ test(e2e): add upload-flow spec for non-demo packs
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — Deep technical architecture and design decisions
 - [docs/SECURITY.md](./docs/SECURITY.md) — Security model, threat model, and responsible disclosure
-- [docs/CONTRIBUTING.md](./CONTRIBUTING.md) — Full contribution guide
+- [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) — Pre-push and pre-release checklist
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — Full contribution guide
 
 ---
 
 <div align="center">
 
-*Built with precision. Verified with math.*
+_Built with precision. Verified with math._
 
 </div>
 

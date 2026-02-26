@@ -3,11 +3,25 @@ import { loadPackFromDirectory, verifyPack } from '@proofpack/core';
 import { unzipToTemp, findPackRoot, cleanupTemp, ZipSlipError } from '../utils/zip.js';
 import { sendError } from '../utils/errors.js';
 
+const ZIP_MIME_TYPES = new Set(['application/zip', 'application/x-zip-compressed']);
+
 export async function verifyRoute(app: FastifyInstance): Promise<void> {
   app.post('/api/verify', async (request, reply) => {
     const data = await request.file();
     if (!data) {
       return sendError(reply, 400, 'NO_FILE', 'No file uploaded', 'Upload a .zip ProofPack file');
+    }
+
+    const filename = data.filename?.toLowerCase() ?? '';
+    const isZipMimeType = ZIP_MIME_TYPES.has(data.mimetype);
+    if (!isZipMimeType && !filename.endsWith('.zip')) {
+      return sendError(
+        reply,
+        415,
+        'UNSUPPORTED_MEDIA_TYPE',
+        `Unsupported upload type: ${data.mimetype || 'unknown'}`,
+        'Upload a .zip ProofPack file',
+      );
     }
 
     const buffer = await data.toBuffer();

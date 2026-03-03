@@ -32,6 +32,7 @@ export interface VerifyApiResponse {
   ok: boolean;
   summary: {
     verified: boolean;
+    profile?: string;
     run_id: string;
     created_at: string;
     producer: { name: string; version: string };

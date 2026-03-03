@@ -8,6 +8,7 @@ interface TimelineFiltersProps {
   decisionFilter: string | null;
   onDecisionFilterChange: (value: string | null) => void;
   eventTypes: string[];
+  onResetFilters: () => void;
 }
 
 export function TimelineFilters({
@@ -18,6 +19,7 @@ export function TimelineFilters({
   decisionFilter,
   onDecisionFilterChange,
   eventTypes,
+  onResetFilters,
 }: TimelineFiltersProps) {
   return (
     <div className="flex items-center gap-3 p-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
@@ -50,6 +52,13 @@ export function TimelineFilters({
         <option value="deny">deny</option>
         <option value="hold">hold</option>
       </select>
+      <button
+        onClick={onResetFilters}
+        className="px-2 py-1.5 text-xs rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+      >
+        Reset
+      </button>
+      <span className="text-[10px] text-[var(--text-muted)]">Filters auto-save</span>
     </div>
   );
 }

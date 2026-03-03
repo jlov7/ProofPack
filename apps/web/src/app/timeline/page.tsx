@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePackStore } from '@/lib/store';
 import { EventList } from '@/components/timeline/EventList';
 import { EventDrawer } from '@/components/timeline/EventDrawer';
 import { TimelineFilters } from '@/components/timeline/TimelineFilters';
+
+const TIMELINE_FILTERS_STORAGE_KEY = 'proofpack_timeline_filters_v1';
 
 export default function TimelinePage() {
   const router = useRouter();
@@ -16,6 +19,30 @@ export default function TimelinePage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [decisionFilter, setDecisionFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(TIMELINE_FILTERS_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as {
+        search?: string;
+        typeFilter?: string | null;
+        decisionFilter?: string | null;
+      };
+      setSearch(parsed.search ?? '');
+      setTypeFilter(parsed.typeFilter ?? null);
+      setDecisionFilter(parsed.decisionFilter ?? null);
+    } catch {
+      // Ignore malformed local cache.
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      TIMELINE_FILTERS_STORAGE_KEY,
+      JSON.stringify({ search, typeFilter, decisionFilter }),
+    );
+  }, [search, typeFilter, decisionFilter]);
 
   const events = report?.events_preview ?? [];
 
@@ -46,6 +73,12 @@ export default function TimelinePage() {
   );
 
   const handleClose = useCallback(() => setSelectedEventId(null), [setSelectedEventId]);
+  const handleResetFilters = useCallback(() => {
+    setSearch('');
+    setTypeFilter(null);
+    setDecisionFilter(null);
+    window.localStorage.removeItem(TIMELINE_FILTERS_STORAGE_KEY);
+  }, []);
 
   if (!report) {
     return (
@@ -78,6 +111,7 @@ export default function TimelinePage() {
           decisionFilter={decisionFilter}
           onDecisionFilterChange={setDecisionFilter}
           eventTypes={eventTypes}
+          onResetFilters={handleResetFilters}
         />
         <EventList events={filtered} selectedId={selectedEventId} onSelect={setSelectedEventId} />
       </div>

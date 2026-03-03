@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DropZone } from '@/components/verify/DropZone';
 import { usePackStore } from '@/lib/store';
@@ -9,6 +9,15 @@ import { verifyPack, fetchDemoPack } from '@/lib/api';
 export default function VerifyPage() {
   const router = useRouter();
   const { verifying, error, setVerifying, setReport, setPackZip, setError, reset } = usePackStore();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const key = 'proofpack_onboarding_v1';
+    const seen = window.localStorage.getItem(key);
+    if (!seen) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -46,9 +55,45 @@ export default function VerifyPage() {
     }
   }, [reset, setVerifying, setReport, setPackZip, setError, router]);
 
+  const dismissOnboarding = useCallback(() => {
+    window.localStorage.setItem('proofpack_onboarding_v1', '1');
+    setShowOnboarding(false);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-8 grid-bg">
       <div className="w-full max-w-lg space-y-6">
+        {showOnboarding && (
+          <div className="rounded-lg border border-[var(--accent-green)]/30 bg-[var(--accent-green)]/5 p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--accent-green)]">
+                Quick Start Wizard
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                1) Load a demo pack or upload your own zip 2) Review checks 3) Export evidence.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  dismissOnboarding();
+                  await handleDemo();
+                }}
+                disabled={verifying}
+                className="px-3 py-1.5 text-xs font-medium rounded bg-[var(--accent-green)] text-black hover:brightness-110 transition-all disabled:opacity-50"
+              >
+                Launch Example Pack
+              </button>
+              <button
+                onClick={dismissOnboarding}
+                className="px-3 py-1.5 text-xs rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold">Verify a ProofPack</h2>
           <p className="text-sm text-[var(--text-secondary)]">

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePackStore } from '@/lib/store';
 import { redactPack as redactPackApi } from '@/lib/api';
+import { buildComplianceTemplate, type ComplianceTemplate } from '@/lib/compliance';
 
 function downloadBlob(data: BlobPart, filename: string, type: string) {
   const blob = new Blob([data], { type });
@@ -57,6 +58,11 @@ export default function ExportPage() {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleExportCompliance = (template: ComplianceTemplate) => {
+    const content = buildComplianceTemplate(template, report);
+    downloadBlob(content, `${template}-compliance-report.md`, 'text/markdown');
   };
 
   return (
@@ -130,6 +136,33 @@ export default function ExportPage() {
           report proves verification was performed, and the public pack allows independent
           re-verification.
         </p>
+      </div>
+
+      <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] space-y-3">
+        <h3 className="text-sm font-medium">Compliance Templates</h3>
+        <p className="text-xs text-[var(--text-muted)]">
+          Generate pre-filled markdown templates for common audit frameworks.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleExportCompliance('soc2')}
+            className="px-3 py-1.5 text-xs rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            SOC 2
+          </button>
+          <button
+            onClick={() => handleExportCompliance('iso27001')}
+            className="px-3 py-1.5 text-xs rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            ISO 27001
+          </button>
+          <button
+            onClick={() => handleExportCompliance('internal-audit')}
+            className="px-3 py-1.5 text-xs rounded border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+          >
+            Internal Audit
+          </button>
+        </div>
       </div>
     </div>
   );

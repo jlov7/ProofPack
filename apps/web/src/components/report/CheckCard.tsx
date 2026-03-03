@@ -87,6 +87,9 @@ export function CheckCard({
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
             {check.error ?? checkDescriptions[check.name] ?? ''}
           </p>
+          {!check.ok && check.hint && (
+            <p className="text-xs text-amber-300/90 mt-1">Hint: {check.hint}</p>
+          )}
         </div>
         <svg
           className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${expanded ? 'rotate-180' : ''}`}

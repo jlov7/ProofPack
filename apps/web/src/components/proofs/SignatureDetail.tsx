@@ -5,7 +5,8 @@ import type { VerifyApiResponse } from '@/lib/store';
 
 export function SignatureDetail({ report }: { report: VerifyApiResponse }) {
   const sigCheck = report.checks.find((c) => c.name === 'receipt.signature');
-  const publicKey = sigCheck?.details?.public_key as string | undefined;
+  const publicKeys = (sigCheck?.details?.public_keys as string[] | undefined) ?? [];
+  const publicKey = (sigCheck?.details?.public_key as string | undefined) ?? publicKeys[0];
 
   return (
     <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] space-y-4">
@@ -21,6 +22,11 @@ export function SignatureDetail({ report }: { report: VerifyApiResponse }) {
           <div>
             <span className="text-xs text-[var(--text-muted)]">Public Key (base64)</span>
             <HashDisplay value={publicKey} truncate={32} />
+            {publicKeys.length > 1 && (
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                {publicKeys.length} signatures present in receipt
+              </p>
+            )}
           </div>
         )}
 

@@ -6,6 +6,7 @@ test.describe('Command Palette', () => {
     await page.goto('/verify');
     await page.getByRole('button', { name: /demo/i }).click();
     await page.waitForURL('/report');
+    await expect(page.getByText(/command palette/i)).toBeVisible();
 
     // Press / to open command palette
     await page.keyboard.press('/');
@@ -26,6 +27,7 @@ test.describe('Command Palette', () => {
 
   test('closes with Escape', async ({ page }) => {
     await page.goto('/verify');
+    await expect(page.getByText(/command palette/i)).toBeVisible();
 
     // Open palette
     await page.keyboard.press('/');

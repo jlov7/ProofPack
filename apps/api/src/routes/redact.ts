@@ -8,6 +8,7 @@ import {
 } from '@proofpack/core';
 import { unzipToTemp, findPackRoot, cleanupTemp, zipPack, ZipSlipError } from '../utils/zip.js';
 import { sendError } from '../utils/errors.js';
+import { recordRedactRequest } from '../utils/observability.js';
 
 const ZIP_MIME_TYPES = new Set(['application/zip', 'application/x-zip-compressed']);
 
@@ -20,14 +21,17 @@ const redactKeypair = keypairFromSeed(redactSeed);
 
 export async function redactRoute(app: FastifyInstance): Promise<void> {
   app.post('/api/redact', async (request, reply) => {
+    const started = Date.now();
     const data = await request.file();
     if (!data) {
+      recordRedactRequest(Date.now() - started, false);
       return sendError(reply, 400, 'NO_FILE', 'No file uploaded', 'Upload a .zip ProofPack file');
     }
 
     const filename = data.filename?.toLowerCase() ?? '';
     const isZipMimeType = ZIP_MIME_TYPES.has(data.mimetype);
     if (!isZipMimeType && !filename.endsWith('.zip')) {
+      recordRedactRequest(Date.now() - started, false);
       return sendError(
         reply,
         415,
@@ -67,6 +71,9 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
         newPack.inclusionProofs,
         canonicalizeString,
       );
+      const durationMs = Date.now() - started;
+      recordRedactRequest(durationMs, true);
+      reply.header('x-proofpack-redact-duration-ms', String(durationMs));
 
       return reply
         .header('Content-Type', 'application/zip')
@@ -74,8 +81,10 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
         .send(zip);
     } catch (err) {
       if (err instanceof ZipSlipError) {
+        recordRedactRequest(Date.now() - started, false);
         return sendError(reply, 400, 'ZIP_SLIP', err.message);
       }
+      recordRedactRequest(Date.now() - started, false);
       return sendError(
         reply,
         400,

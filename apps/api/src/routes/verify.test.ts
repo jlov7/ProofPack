@@ -136,4 +136,64 @@ describe('POST /api/verify', () => {
     expect(json.ok).toBe(false);
     expect(json.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
   });
+
+  it('returns stable INVALID_PACK error for malformed zip payloads', async () => {
+    const { body, contentType } = buildMultipartPayload(Buffer.from('PK-this-is-not-real-zip'), {
+      filename: 'broken.zip',
+      mimeType: 'application/zip',
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const json = res.json();
+    expect(json.ok).toBe(false);
+    expect(json.error.code).toBe('INVALID_PACK');
+    expect(typeof json.error.message).toBe('string');
+  });
+});
+
+describe('POST /api/verify with strict profile', () => {
+  let app: FastifyInstance;
+  const previousProfile = process.env.PROOFPACK_VERIFY_PROFILE;
+
+  beforeAll(async () => {
+    process.env.PROOFPACK_VERIFY_PROFILE = 'strict';
+    app = await buildServer();
+  });
+
+  afterAll(async () => {
+    if (previousProfile === undefined) {
+      delete process.env.PROOFPACK_VERIFY_PROFILE;
+    } else {
+      process.env.PROOFPACK_VERIFY_PROFILE = previousProfile;
+    }
+    await app.close();
+  });
+
+  it('applies strict verification profile checks', async () => {
+    const pack = buildDemoPack();
+    const zip = packToZipBuffer(pack);
+    const { body, contentType } = buildMultipartPayload(zip);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const json = res.json();
+    expect(json.summary.verified).toBe(false);
+    expect(json.checks.find((c: { name: string }) => c.name === 'receipt.trust')?.ok).toBe(false);
+    expect(json.checks.find((c: { name: string }) => c.name === 'timestamp.anchor')?.ok).toBe(
+      false,
+    );
+  });
 });

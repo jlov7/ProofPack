@@ -32,6 +32,6 @@
     "@types/js-yaml": "^4.0.0",
     "@types/micromatch": "^4.0.0",
     "@types/yauzl": "^2.10.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.0.18"
   }
 }

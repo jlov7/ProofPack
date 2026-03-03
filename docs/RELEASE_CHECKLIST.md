@@ -14,6 +14,13 @@ Use this checklist before pushing to GitHub or cutting a release tag.
 - [ ] `pnpm build`
 - [ ] `pnpm e2e`
 - [ ] `pnpm verify -- ./examples/sample_runs/latest.proofpack`
+- [ ] `pnpm stress:core`
+- [ ] `pnpm repro:check`
+- [ ] `pnpm release:artifacts`
+- [ ] `pnpm release:attest`
+- [ ] `pnpm release:attest:verify`
+- [ ] `pnpm policy:deps`
+- [ ] `pnpm sbom:generate`
 
 Or run all core gates in one shot:
 

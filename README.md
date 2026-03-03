@@ -14,7 +14,7 @@
 _Cryptographically signed · Merkle-audited · Policy-enforced · Offline-verifiable_
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Unit Tests](https://img.shields.io/badge/unit_tests-175_passing-22c55e?logo=vitest&logoColor=white)](./packages)
+[![Unit Tests](https://img.shields.io/badge/unit_tests-215_passing-22c55e?logo=vitest&logoColor=white)](./packages)
 [![E2E Tests](https://img.shields.io/badge/e2e_tests-12_passing-22c55e?logo=playwright&logoColor=white)](./tests/e2e)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
@@ -592,13 +592,32 @@ pnpm verify -- path/to/run.proofpack
 
 # Verify a zip
 pnpm verify -- path/to/run.proofpack.zip
+
+# Machine-readable JSON for CI
+pnpm verify -- path/to/run.proofpack --json
+
+# Strict profile with trust/timestamp controls
+pnpm verify -- path/to/run.proofpack \
+  --profile strict \
+  --trust-store ./config/trust-store.example.json \
+  --require-trusted-key \
+  --require-timestamp-anchor
+```
+
+### `pnpm diff -- <left> <right>`
+
+Compare two packs and report event/hash/signer drift.
+
+```bash
+pnpm diff -- path/to/run-a.proofpack path/to/run-b.proofpack
+pnpm diff -- path/to/run-a.proofpack path/to/run-b.proofpack --json
 ```
 
 ---
 
 ## API Reference
 
-The Fastify REST API (`apps/api`, default port `5000`) exposes three endpoints.
+The Fastify REST API (`apps/api`, default port `5000`) exposes four endpoints.
 
 ### `GET /api/demo-pack`
 
@@ -621,13 +640,23 @@ Upload a `.proofpack.zip` and receive a full verification report.
   "ok": true,
   "summary": {
     "verified": true,
+    "profile": "standard",
     "run_id": "d3e0baa5-de10-4000-a000-000000000000",
     "created_at": "2026-01-15T10:00:00.000Z",
     "producer": { "name": "proofpack-demo", "version": "0.1.0" }
   },
   "checks": [
     { "name": "manifest.schema", "ok": true, "details": {} },
-    { "name": "receipt.signature", "ok": true, "details": { "public_key": "xj2W..." } },
+    {
+      "name": "receipt.signature",
+      "ok": true,
+      "details": {
+        "signature_count": 1,
+        "valid_signatures": 1,
+        "threshold": 1,
+        "public_keys": ["xj2W..."]
+      }
+    },
     { "name": "merkle.root", "ok": true, "details": { "tree_size": 13 } },
     { "name": "merkle.inclusion_all", "ok": true, "details": { "verified_events": 13 } },
     { "name": "policy.hash", "ok": true, "details": {} },
@@ -674,11 +703,33 @@ The public pack passes all six verification checks. Sharing it reveals nothing a
 
 ---
 
+### `GET /api/metrics`
+
+Returns in-memory counters and timing telemetry for verify/redact operations.
+
+**Response `200`:**
+
+```json
+{
+  "ok": true,
+  "metrics": {
+    "verify_requests_total": 3,
+    "verify_failures_total": 1,
+    "verify_last_duration_ms": 18,
+    "redact_requests_total": 1,
+    "redact_failures_total": 0,
+    "redact_last_duration_ms": 24
+  }
+}
+```
+
+---
+
 ## Project Structure
 
 ```
 proofpack/
-├── package.json                  ← root scripts: dev, test, e2e, check, demo, verify
+├── package.json                  ← root scripts: dev, test, e2e, check, demo, verify, diff, release gates
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json            ← strict TypeScript (no any, strict: true)
 ├── eslint.config.mjs             ← typescript-eslint flat config
@@ -784,7 +835,7 @@ proofpack/
 
 ## Testing
 
-### Unit Tests — 175 tests across 14 files
+### Unit Tests — 215 tests across 23 files
 
 ```bash
 pnpm test
@@ -823,10 +874,13 @@ pnpm e2e
 
 ```bash
 pnpm check     # TypeScript strict + ESLint + Prettier — must be clean
-pnpm test      # All 175 unit tests
+pnpm test      # All unit tests across core + cli + api
 pnpm build     # Build core + cli + api + web
 pnpm e2e       # All 12 E2E tests (starts dev server automatically)
 pnpm ci        # check + test + build + e2e
+pnpm stress:core
+pnpm release:artifacts && pnpm release:attest && pnpm release:attest:verify
+pnpm repro:check
 ```
 
 ---
@@ -848,7 +902,7 @@ pnpm dev        # API on :3001, web on :3000
 
 ```bash
 pnpm check     # zero warnings
-pnpm test      # 175 passing
+pnpm test      # unit tests passing
 pnpm build     # all packages build cleanly
 pnpm e2e       # 12 passing
 ```
@@ -883,6 +937,16 @@ test(e2e): add upload-flow spec for non-demo packs
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — Deep technical architecture and design decisions
 - [docs/SECURITY.md](./docs/SECURITY.md) — Security model, threat model, and responsible disclosure
+- [docs/specs/proofpack-pack-v1-spec.md](./docs/specs/proofpack-pack-v1-spec.md) — Normative pack format and compatibility contract
+- [docs/deployment/docker.md](./docs/deployment/docker.md) — Containerized deployment path
+- [docs/deployment/providers.md](./docs/deployment/providers.md) — Provider-specific deployment examples
+- [docs/integrations/github-action.md](./docs/integrations/github-action.md) — Reusable external verification action
+- [docs/integrations/runtime-sdk-examples.md](./docs/integrations/runtime-sdk-examples.md) — Runtime SDK integration examples
+- [docs/security/threat-model-2026-03.md](./docs/security/threat-model-2026-03.md) — Formal threat model artifact
+- [docs/security/security-review-2026-03.md](./docs/security/security-review-2026-03.md) — Security review artifact
+- [docs/security/trust-store.md](./docs/security/trust-store.md) — Trusted key lifecycle and API/CLI enforcement
+- [docs/release-integrity.md](./docs/release-integrity.md) — Attestation signing and reproducibility gate
+- [docs/launch/launch-package-2026-03.md](./docs/launch/launch-package-2026-03.md) — Launch package (benchmarks + architecture deck)
 - [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) — Pre-push and pre-release checklist
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — Full contribution guide
 

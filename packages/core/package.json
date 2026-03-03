@@ -28,7 +28,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/archiver": "^6.0.0",
+    "@types/archiver": "^7.0.0",
     "@types/js-yaml": "^4.0.0",
     "@types/micromatch": "^4.0.0",
     "@types/yauzl": "^2.10.0",

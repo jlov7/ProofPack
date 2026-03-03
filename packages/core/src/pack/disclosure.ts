@@ -14,6 +14,19 @@ export interface DisclosureCheck {
   error?: string;
 }
 
+function decodeBase64Strict(value: string): Uint8Array {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length % 4 !== 0) {
+    throw new Error('Opening salt is not valid base64');
+  }
+  const decoded = Buffer.from(value, 'base64');
+  const normalizedInput = value.replace(/=+$/, '');
+  const normalizedDecoded = decoded.toString('base64').replace(/=+$/, '');
+  if (normalizedInput !== normalizedDecoded) {
+    throw new Error('Opening salt is not valid base64');
+  }
+  return new Uint8Array(decoded);
+}
+
 /**
  * Verify that openings match their corresponding event commitments.
  * Each opening reveals (payload, salt) and must satisfy:
@@ -21,8 +34,19 @@ export interface DisclosureCheck {
  */
 export function verifyOpenings(events: Event[], openings: Opening[]): DisclosureResult {
   const results: DisclosureCheck[] = [];
+  const seenEventIds = new Set<string>();
 
   for (const opening of openings) {
+    if (seenEventIds.has(opening.event_id)) {
+      results.push({
+        event_id: opening.event_id,
+        ok: false,
+        error: `Duplicate opening for event ${opening.event_id}`,
+      });
+      continue;
+    }
+    seenEventIds.add(opening.event_id);
+
     const event = events.find((e) => e.event_id === opening.event_id);
     if (!event) {
       results.push({ event_id: opening.event_id, ok: false, error: 'Event not found' });
@@ -40,7 +64,10 @@ export function verifyOpenings(events: Event[], openings: Opening[]): Disclosure
 
     try {
       const canonicalPayload = canonicalize(opening.payload);
-      const salt = new Uint8Array(Buffer.from(opening.salt_b64, 'base64'));
+      const salt = decodeBase64Strict(opening.salt_b64);
+      if (salt.length < 16) {
+        throw new Error('Opening salt must be at least 16 bytes');
+      }
       const combined = new Uint8Array(canonicalPayload.length + salt.length);
       combined.set(canonicalPayload);
       combined.set(salt, canonicalPayload.length);

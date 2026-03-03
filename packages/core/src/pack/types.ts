@@ -3,6 +3,7 @@ import type { Receipt } from '../types/receipt.js';
 import type { Event } from '../types/event.js';
 import type { Policy, Decision } from '../types/policy.js';
 import type { MerkleFile, InclusionProofFile } from '../types/merkle.js';
+import type { TrustStore } from './trust.js';
 
 /** In-memory representation of a loaded ProofPack. */
 export interface PackContents {
@@ -40,10 +41,21 @@ export interface VerificationCheck {
   ok: boolean;
   details: Record<string, unknown>;
   error?: string;
+  hint?: string;
+}
+
+export type VerificationProfile = 'standard' | 'strict' | 'permissive';
+
+export interface VerifyPackOptions {
+  profile?: VerificationProfile;
+  trustStore?: TrustStore;
+  requireTrustedKey?: boolean;
+  requireTimestampAnchor?: boolean;
 }
 
 export interface VerificationReport {
   verified: boolean;
+  profile: VerificationProfile;
   run_id: string;
   created_at: string;
   producer: { name: string; version: string };

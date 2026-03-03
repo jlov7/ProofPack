@@ -159,4 +159,22 @@ describe('verifyPack', () => {
     expect(disclosureCheck?.ok).toBe(true);
     expect(disclosureCheck?.details).toEqual({ openings: 0, skipped: true });
   });
+
+  it('fails manifest.schema when manifest and receipt schema versions differ', () => {
+    const pack = buildTestPack(5);
+    const mismatched: PackContents = {
+      ...pack,
+      receipt: {
+        ...pack.receipt,
+        signed_block: {
+          ...pack.receipt.signed_block,
+          schema_version: '1.0.0',
+        },
+      },
+    };
+    const report = verifyPack(mismatched);
+    expect(report.verified).toBe(false);
+    const schemaCheck = report.checks.find((c) => c.name === 'manifest.schema');
+    expect(schemaCheck?.ok).toBe(false);
+  });
 });

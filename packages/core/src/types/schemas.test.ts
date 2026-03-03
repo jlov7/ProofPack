@@ -15,7 +15,7 @@ const VALID_DATETIME = '2024-01-15T10:30:00.000Z';
 
 function validManifest() {
   return {
-    schema_version: '1.0',
+    schema_version: '1.0.0',
     run_id: VALID_UUID,
     created_at: VALID_DATETIME,
     producer: { name: 'proofpack-agent', version: '0.1.0' },
@@ -32,7 +32,7 @@ function validManifest() {
 function validReceipt() {
   return {
     signed_block: {
-      schema_version: '1.0',
+      schema_version: '1.0.0',
       run_id: VALID_UUID,
       created_at: VALID_DATETIME,
       producer: { name: 'proofpack-agent', version: '0.1.0' },
@@ -135,6 +135,16 @@ describe('ManifestSchema', () => {
     const { receipt_sha256: _, ...hashes } = input.hashes;
     expect(ManifestSchema.safeParse({ ...input, hashes }).success).toBe(false);
   });
+
+  it('accepts legacy schema version 0.1.0 for compatibility', () => {
+    const input = { ...validManifest(), schema_version: '0.1.0' };
+    expect(ManifestSchema.safeParse(input).success).toBe(true);
+  });
+
+  it('rejects unknown schema version', () => {
+    const input = { ...validManifest(), schema_version: '2.0.0' };
+    expect(ManifestSchema.safeParse(input).success).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -182,6 +192,57 @@ describe('ReceiptSchema', () => {
   it('rejects receipt missing signature', () => {
     const { signature: _, ...rest } = validReceipt();
     expect(ReceiptSchema.safeParse(rest).success).toBe(false);
+  });
+
+  it('accepts receipt using signatures array + threshold', () => {
+    const input = validReceipt();
+    input.signature = {
+      ...input.signature,
+      key_id: 'key-primary',
+    };
+    const secondary = {
+      ...input.signature,
+      key_id: 'key-secondary',
+      public_key: 'base64pubkey-2==',
+      sig: 'base64sig-2==',
+    };
+    const value = {
+      ...input,
+      signatures: [input.signature, secondary],
+      threshold: 2,
+    };
+    expect(ReceiptSchema.safeParse(value).success).toBe(true);
+  });
+
+  it('rejects threshold without signatures array', () => {
+    const input = { ...validReceipt(), threshold: 2 };
+    expect(ReceiptSchema.safeParse(input).success).toBe(false);
+  });
+
+  it('accepts receipt with optional timestamp anchor and history references', () => {
+    const input = validReceipt();
+    input.signed_block.timestamp_anchor = {
+      type: 'rfc3161',
+      timestamp: VALID_DATETIME,
+      token_sha256: 'f'.repeat(64),
+    };
+    input.signed_block.history = {
+      previous_tree_size: 3,
+      previous_root_hash: 'e'.repeat(64),
+    };
+    expect(ReceiptSchema.safeParse(input).success).toBe(true);
+  });
+
+  it('accepts legacy schema version 0.1.0 for compatibility', () => {
+    const input = validReceipt();
+    input.signed_block.schema_version = '0.1.0';
+    expect(ReceiptSchema.safeParse(input).success).toBe(true);
+  });
+
+  it('rejects unknown schema version', () => {
+    const input = validReceipt();
+    input.signed_block.schema_version = '2.0.0';
+    expect(ReceiptSchema.safeParse(input).success).toBe(false);
   });
 });
 

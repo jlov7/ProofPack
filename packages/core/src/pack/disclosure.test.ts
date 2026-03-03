@@ -129,4 +129,39 @@ describe('verifyOpenings', () => {
     expect(result.verified).toBe(true);
     expect(result.results).toHaveLength(2);
   });
+
+  it('rejects duplicate openings for the same event', () => {
+    const salt = Buffer.from('test-salt-32-bytes-long-exactly!').toString('base64');
+    const { event, opening } = makeCommittedEvent(
+      '00000000-0000-4000-a000-000000000001',
+      { path: 'workspace/file.ts' },
+      salt,
+    );
+
+    const result = verifyOpenings([event], [opening, opening]);
+    expect(result.verified).toBe(false);
+    expect(result.results.some((r) => r.error?.includes('Duplicate opening'))).toBe(true);
+  });
+
+  it('rejects openings with very short salts', () => {
+    const shortSalt = Buffer.from('short').toString('base64');
+    const { event } = makeCommittedEvent(
+      '00000000-0000-4000-a000-000000000001',
+      { path: 'workspace/file.ts' },
+      shortSalt,
+    );
+
+    const result = verifyOpenings(
+      [event],
+      [
+        {
+          event_id: '00000000-0000-4000-a000-000000000001',
+          salt_b64: shortSalt,
+          payload: { path: 'workspace/file.ts' },
+        },
+      ],
+    );
+    expect(result.verified).toBe(false);
+    expect(result.results[0]?.error).toContain('salt');
+  });
 });

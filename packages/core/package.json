@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc --build",
     "dev": "tsc --build --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:stress": "PROOFPACK_STRESS=1 vitest run src/pack/stress.test.ts"
   },
   "dependencies": {
     "@noble/ed25519": "^2.2.0",

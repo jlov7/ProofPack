@@ -4,19 +4,62 @@ import { sha256Hex, toHex, fromHex } from '../crypto/hash.js';
 import { computeRoot, verifyInclusion } from '../crypto/merkle.js';
 import { ManifestSchema } from '../types/manifest.js';
 import { ReceiptSchema } from '../types/receipt.js';
+import { verifyHistoryRef } from './history.js';
+import { evaluateTrust } from './trust.js';
+import { verifyOpenings } from './disclosure.js';
 import type { InclusionProof } from '../crypto/merkle.js';
-import type { PackContents, VerificationCheck, VerificationReport, EventPreview } from './types.js';
+import type {
+  PackContents,
+  VerificationCheck,
+  VerificationReport,
+  EventPreview,
+  VerifyPackOptions,
+} from './types.js';
+import type { Signature } from '../types/receipt.js';
+
+function failureHint(name: string, error: string): string | undefined {
+  if (name === 'manifest.schema') {
+    return 'Regenerate the pack using matching manifest and receipt schema versions.';
+  }
+  if (name === 'receipt.signature') {
+    return 'Re-sign the pack receipt after any change to signed_block fields.';
+  }
+  if (name === 'receipt.trust') {
+    return 'Add the signing key to your trust store, or rotate to an active trusted key.';
+  }
+  if (name === 'merkle.root' || name === 'merkle.inclusion_all') {
+    return 'One or more events or proof files were modified; regenerate the Merkle audit files.';
+  }
+  if (name === 'policy.hash') {
+    return 'Policy or decisions file bytes changed after signing; regenerate or restore originals.';
+  }
+  if (name === 'disclosure.openings') {
+    return 'Ensure each opening uses the original payload and salt from redaction output.';
+  }
+  if (name === 'timestamp.anchor') {
+    return 'Attach a trusted timestamp anchor with timestamp >= created_at.';
+  }
+  if (name === 'history.consistency') {
+    return 'Ensure current pack is append-only from prior run, or clear invalid history metadata.';
+  }
+  if (error.toLowerCase().includes('missing')) {
+    return 'Check that all expected files and metadata are present before verification.';
+  }
+  return undefined;
+}
 
 function check(name: string, fn: () => Record<string, unknown>): VerificationCheck {
   try {
     const details = fn();
     return { name, ok: true, details };
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     return {
       name,
       ok: false,
       details: {},
-      error: err instanceof Error ? err.message : String(err),
+      error: message,
+      hint: failureHint(name, message),
     };
   }
 }
@@ -37,14 +80,34 @@ function buildEventsPreview(pack: PackContents): EventPreview[] {
   });
 }
 
-export function verifyPack(pack: PackContents): VerificationReport {
+function getReceiptSignatures(pack: PackContents): Signature[] {
+  if (pack.receipt.signatures && pack.receipt.signatures.length > 0) {
+    return pack.receipt.signatures;
+  }
+  if (pack.receipt.signature) {
+    return [pack.receipt.signature];
+  }
+  throw new Error('Receipt contains no signatures');
+}
+
+export function verifyPack(
+  pack: PackContents,
+  options: VerifyPackOptions = {},
+): VerificationReport {
+  const profile = options.profile ?? 'standard';
   const checks: VerificationCheck[] = [];
+  const strict = profile === 'strict';
 
   // Check 1: manifest.schema — validate manifest against Zod schema
   checks.push(
     check('manifest.schema', () => {
-      ManifestSchema.parse(pack.manifest);
-      ReceiptSchema.parse(pack.receipt);
+      const manifest = ManifestSchema.parse(pack.manifest);
+      const receipt = ReceiptSchema.parse(pack.receipt);
+      if (manifest.schema_version !== receipt.signed_block.schema_version) {
+        throw new Error(
+          `Schema version mismatch: manifest=${manifest.schema_version} receipt=${receipt.signed_block.schema_version}`,
+        );
+      }
       return {};
     }),
   );
@@ -53,13 +116,65 @@ export function verifyPack(pack: PackContents): VerificationReport {
   checks.push(
     check('receipt.signature', () => {
       const canonicalBytes = canonicalize(pack.receipt.signed_block);
-      const publicKey = fromBase64(pack.receipt.signature.public_key);
-      const sig = fromBase64(pack.receipt.signature.sig);
-      const valid = ed25519Verify(publicKey, sig, canonicalBytes);
-      if (!valid) throw new Error('Ed25519 signature verification failed');
-      return { public_key: pack.receipt.signature.public_key };
+      const signatures = getReceiptSignatures(pack);
+      const threshold = pack.receipt.threshold ?? signatures.length;
+      if (threshold > signatures.length) {
+        throw new Error(
+          `Invalid signature threshold: ${threshold} > signature count ${signatures.length}`,
+        );
+      }
+
+      let validSignatures = 0;
+      const publicKeys: string[] = [];
+      for (const signature of signatures) {
+        const publicKey = fromBase64(signature.public_key);
+        const sig = fromBase64(signature.sig);
+        const valid = ed25519Verify(publicKey, sig, canonicalBytes);
+        if (valid) validSignatures++;
+        publicKeys.push(signature.public_key);
+      }
+
+      if (validSignatures < threshold) {
+        throw new Error(
+          `Ed25519 signature verification failed: ${validSignatures}/${threshold} valid`,
+        );
+      }
+      return {
+        signature_count: signatures.length,
+        valid_signatures: validSignatures,
+        threshold,
+        public_keys: publicKeys,
+      };
     }),
   );
+
+  // Optional trust check: only runs when trust is configured or strict profile is requested.
+  if (options.trustStore || options.requireTrustedKey || strict) {
+    checks.push(
+      check('receipt.trust', () => {
+        if (!options.trustStore) {
+          throw new Error('No trust store provided');
+        }
+
+        const signatures = getReceiptSignatures(pack);
+        const trust = evaluateTrust(
+          signatures.map((s) => s.public_key),
+          pack.receipt.signed_block.created_at,
+          options.trustStore,
+        );
+
+        if (!trust.ok) {
+          throw new Error(trust.errors[0] ?? 'Trust store validation failed');
+        }
+
+        return {
+          trusted_keys: trust.matched.map((m) => m.key_id),
+          statuses: trust.matched.map((m) => m.status),
+          warnings: trust.warnings,
+        };
+      }),
+    );
+  }
 
   // Check 3: merkle.root — recompute tree from events, compare root to receipt
   checks.push(
@@ -127,37 +242,79 @@ export function verifyPack(pack: PackContents): VerificationReport {
         return { openings: 0, skipped: true };
       }
 
-      let verified = 0;
-      for (const opening of pack.openings) {
-        const event = pack.events.find((e) => e.event_id === opening.event_id);
-        if (!event) throw new Error(`No event for opening: ${opening.event_id}`);
-        if (!event.payload_commitment) {
-          throw new Error(`Event ${opening.event_id} has no payload_commitment`);
-        }
-
-        const canonicalPayload = canonicalize(opening.payload);
-        const salt = fromBase64(opening.salt_b64);
-        const combined = new Uint8Array(canonicalPayload.length + salt.length);
-        combined.set(canonicalPayload);
-        combined.set(salt, canonicalPayload.length);
-        const commitment = sha256Hex(combined);
-
-        if (commitment !== event.payload_commitment) {
-          throw new Error(
-            `Opening commitment mismatch for ${opening.event_id}: ${commitment} vs ${event.payload_commitment}`,
-          );
-        }
-        verified++;
+      const result = verifyOpenings(pack.events, pack.openings);
+      if (!result.verified) {
+        const firstFailure = result.results.find((r) => !r.ok);
+        throw new Error(firstFailure?.error ?? 'Disclosure opening verification failed');
       }
 
-      return { openings: verified };
+      return { openings: result.results.length };
     }),
   );
 
-  const verified = checks.every((c) => c.ok);
+  // Optional timestamp check for anchored packs and strict mode.
+  if (pack.receipt.signed_block.timestamp_anchor || options.requireTimestampAnchor || strict) {
+    checks.push(
+      check('timestamp.anchor', () => {
+        const anchor = pack.receipt.signed_block.timestamp_anchor;
+        if (!anchor) {
+          throw new Error('Timestamp anchor is required but missing');
+        }
+        const runTime = Date.parse(pack.receipt.signed_block.created_at);
+        const anchorTime = Date.parse(anchor.timestamp);
+        if (Number.isNaN(anchorTime)) {
+          throw new Error('Timestamp anchor contains an invalid datetime');
+        }
+        if (anchorTime < runTime) {
+          throw new Error('Timestamp anchor predates the pack creation time');
+        }
+        return { type: anchor.type, timestamp: anchor.timestamp };
+      }),
+    );
+  }
+
+  // Optional append-only history consistency check.
+  if (pack.receipt.signed_block.history || strict) {
+    checks.push(
+      check('history.consistency', () => {
+        const history = pack.receipt.signed_block.history;
+        if (!history) {
+          throw new Error('History consistency proof missing');
+        }
+        if (history.previous_tree_size > pack.events.length) {
+          throw new Error(
+            `History previous_tree_size ${history.previous_tree_size} exceeds current event count ${pack.events.length}`,
+          );
+        }
+        const ok = verifyHistoryRef(pack.events, history);
+        if (!ok) {
+          throw new Error('Append-only consistency check failed');
+        }
+        return {
+          previous_tree_size: history.previous_tree_size,
+          previous_root_hash: history.previous_root_hash,
+        };
+      }),
+    );
+  }
+
+  const verified =
+    profile === 'permissive'
+      ? checks
+          .filter((c) =>
+            [
+              'manifest.schema',
+              'receipt.signature',
+              'merkle.root',
+              'merkle.inclusion_all',
+            ].includes(c.name),
+          )
+          .every((c) => c.ok)
+      : checks.every((c) => c.ok);
 
   return {
     verified,
+    profile,
     run_id: pack.manifest.run_id,
     created_at: pack.manifest.created_at,
     producer: pack.manifest.producer,

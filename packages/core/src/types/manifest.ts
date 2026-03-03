@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SchemaVersionSchema } from './schema-version.js';
 
 export const ProducerSchema = z.object({
   name: z.string(),
@@ -14,7 +15,7 @@ export const ManifestHashesSchema = z.object({
 });
 
 export const ManifestSchema = z.object({
-  schema_version: z.string(),
+  schema_version: SchemaVersionSchema,
   run_id: z.string().uuid(),
   created_at: z.string().datetime(),
   producer: ProducerSchema,

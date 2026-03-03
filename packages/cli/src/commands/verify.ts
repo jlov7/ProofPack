@@ -1,14 +1,41 @@
 import chalk from 'chalk';
-import { loadPackFromDirectory, verifyPack } from '@proofpack/core';
-import type { VerificationReport, VerificationCheck } from '@proofpack/core';
+import fs from 'node:fs';
+import {
+  loadPackFromDirectory,
+  verifyPack,
+  TrustStoreSchema,
+  type VerificationReport,
+  type VerificationCheck,
+  type VerificationProfile,
+  type TrustStore,
+} from '@proofpack/core';
+
+export interface VerifyCommandOptions {
+  json?: boolean;
+  profile?: VerificationProfile;
+  trustStorePath?: string;
+  requireTrustedKey?: boolean;
+  requireTimestampAnchor?: boolean;
+}
+
+function loadTrustStore(trustStorePath: string): TrustStore {
+  const raw = fs.readFileSync(trustStorePath, 'utf-8');
+  const parsed = JSON.parse(raw) as unknown;
+  return TrustStoreSchema.parse(parsed);
+}
 
 function checkDescription(c: VerificationCheck): string {
   switch (c.name) {
     case 'manifest.schema':
       return 'Schema valid';
     case 'receipt.signature': {
-      const key = (c.details.public_key as string | undefined) ?? '';
-      return `Ed25519 verified (key: ${key.slice(0, 8)}...)`;
+      const valid = c.details.valid_signatures ?? '?';
+      const threshold = c.details.threshold ?? '?';
+      return `Ed25519 verified (${valid}/${threshold} signatures)`;
+    }
+    case 'receipt.trust': {
+      const keys = (c.details.trusted_keys as string[] | undefined) ?? [];
+      return keys.length > 0 ? `Trusted keys: ${keys.join(', ')}` : 'Trust decision passed';
     }
     case 'merkle.root': {
       const size = c.details.tree_size ?? '?';
@@ -24,6 +51,14 @@ function checkDescription(c: VerificationCheck): string {
       if (c.details.skipped) return 'No openings (private pack)';
       return `${c.details.openings} openings verified`;
     }
+    case 'timestamp.anchor': {
+      const ts = c.details.timestamp ?? '?';
+      return `Timestamp anchored (${ts})`;
+    }
+    case 'history.consistency': {
+      const size = c.details.previous_tree_size ?? '?';
+      return `Append-only history verified (prefix: ${size} events)`;
+    }
     default:
       return c.name;
   }
@@ -32,6 +67,7 @@ function checkDescription(c: VerificationCheck): string {
 function printReport(report: VerificationReport): void {
   console.error(chalk.bold('\nProofPack Verification Report'));
   console.error(chalk.dim('─'.repeat(40)));
+  console.error(`Profile:    ${report.profile}`);
   console.error(`Run ID:     ${chalk.cyan(report.run_id)}`);
   console.error(`Created:    ${report.created_at}`);
   console.error(`Producer:   ${report.producer.name} v${report.producer.version}`);
@@ -41,7 +77,11 @@ function printReport(report: VerificationReport): void {
   for (const c of report.checks) {
     const icon = c.ok ? chalk.green('✓') : chalk.red('✗');
     const name = c.name.padEnd(24);
-    const desc = c.ok ? checkDescription(c) : chalk.red(c.error ?? 'Failed');
+    const desc = c.ok
+      ? checkDescription(c)
+      : chalk.red(
+          [c.error ?? 'Failed', c.hint ? `Hint: ${c.hint}` : undefined].filter(Boolean).join('  '),
+        );
     console.error(`  ${icon}  ${name} ${desc}`);
     if (c.ok) passed++;
   }
@@ -59,14 +99,41 @@ function printReport(report: VerificationReport): void {
   }
 }
 
-export function runVerify(packPath: string): void {
+function printJsonReport(report: VerificationReport): void {
+  process.stdout.write(JSON.stringify(report, null, 2) + '\n');
+}
+
+export function runVerify(packPath: string, opts: VerifyCommandOptions = {}): void {
   try {
     const pack = loadPackFromDirectory(packPath);
-    const report = verifyPack(pack);
-    printReport(report);
+    const trustStore = opts.trustStorePath ? loadTrustStore(opts.trustStorePath) : undefined;
+    const report = verifyPack(pack, {
+      profile: opts.profile,
+      trustStore,
+      requireTrustedKey: opts.requireTrustedKey,
+      requireTimestampAnchor: opts.requireTimestampAnchor,
+    });
+    if (opts?.json) {
+      printJsonReport(report);
+    } else {
+      printReport(report);
+    }
     process.exitCode = report.verified ? 0 : 1;
   } catch (err) {
-    console.error(chalk.red(`\nError: ${err instanceof Error ? err.message : String(err)}`));
+    if (opts?.json) {
+      process.stdout.write(
+        JSON.stringify(
+          {
+            verified: false,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          null,
+          2,
+        ) + '\n',
+      );
+    } else {
+      console.error(chalk.red(`\nError: ${err instanceof Error ? err.message : String(err)}`));
+    }
     process.exitCode = 2;
   }
 }

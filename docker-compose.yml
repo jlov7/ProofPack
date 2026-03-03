@@ -1,0 +1,11 @@
+services:
+  proofpack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: proofpack:local
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000

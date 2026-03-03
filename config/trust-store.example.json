@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "keys": [
+    {
+      "key_id": "replace-with-key-fingerprint",
+      "public_key": "replace-with-base64-ed25519-public-key",
+      "status": "active",
+      "valid_from": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

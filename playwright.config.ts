@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const E2E_PORT = 3211;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -10,7 +12,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${E2E_PORT}`,
     trace: 'on-first-retry',
   },
 
@@ -22,9 +24,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm --filter @proofpack/web dev --port 3000',
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
+    command: `pnpm --filter @proofpack/web dev --port ${E2E_PORT}`,
+    port: E2E_PORT,
+    reuseExistingServer: false,
     timeout: 30_000,
   },
 });

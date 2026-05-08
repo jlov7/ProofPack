@@ -15,11 +15,11 @@ Small documentation fixes and focused bug fixes can go straight to a PR.
 
 ## Development Environment
 
-| Tool    | Version | Notes                         |
-| ------- | ------- | ----------------------------- |
-| Node.js | >= 20   | Match `package.json#engines`  |
-| pnpm    | 11.x    | Workspace package manager     |
-| Git     | recent  | Required for release metadata |
+| Tool    | Version  | Notes                         |
+| ------- | -------- | ----------------------------- |
+| Node.js | >= 22.13 | Match `package.json#engines`  |
+| pnpm    | 11.x     | Workspace package manager     |
+| Git     | recent   | Required for release metadata |
 
 ```bash
 git clone https://github.com/jlov7/ProofPack.git

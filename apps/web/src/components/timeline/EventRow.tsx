@@ -3,17 +3,17 @@
 import type { EventPreview } from '@proofpack/core';
 import { Badge } from '@/components/ui/Badge';
 
-const typeIcons: Record<string, string> = {
-  'run.start': '▶',
-  'run.end': '⏹',
-  'fs.read': '📄',
-  'fs.write': '✏️',
-  'tool.call': '🔧',
-  'shell.exec': '💻',
-  'net.http': '🌐',
-  'hold.request': '⏸',
-  'hold.approve': '✅',
-  'hold.reject': '❌',
+const typeLabels: Record<string, string> = {
+  'run.start': 'RS',
+  'run.end': 'RE',
+  'fs.read': 'FR',
+  'fs.write': 'FW',
+  'tool.call': 'TC',
+  'shell.exec': 'SH',
+  'net.http': 'NW',
+  'hold.request': 'HR',
+  'hold.approve': 'HA',
+  'hold.reject': 'HJ',
 };
 
 export function EventRow({
@@ -25,7 +25,7 @@ export function EventRow({
   selected: boolean;
   onClick: () => void;
 }) {
-  const icon = typeIcons[event.type] ?? '●';
+  const typeLabel = typeLabels[event.type] ?? 'EV';
   const time = new Date(event.ts).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
@@ -35,14 +35,17 @@ export function EventRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-b border-[var(--border)] ${
+      className={`focus-ring flex w-full items-center gap-3 border-b border-[var(--border)] px-4 py-3 text-left transition-colors ${
         selected
           ? 'bg-[var(--accent-green)]/5 border-l-2 border-l-[var(--accent-green)]'
           : 'hover:bg-white/[0.02]'
       }`}
     >
-      <span className="text-base shrink-0 w-6 text-center" title={event.type}>
-        {icon}
+      <span
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--bg-primary)] font-mono text-[10px] text-[var(--text-secondary)]"
+        title={event.type}
+      >
+        {typeLabel}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

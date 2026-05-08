@@ -133,7 +133,7 @@ interface Manifest {
 }
 ```
 
-The `manifest_sha256` field is always the empty string. This is intentional: including the hash of the manifest in the manifest itself would require solving a fixed-point equation. The manifest is not part of the signed block, so its integrity is protected transitively through the receipt signature.
+The `manifest_sha256` field is always the empty string. This is intentional: including the hash of the manifest in the manifest itself would require solving a fixed-point equation. The manifest is not part of the receipt block, so source-pack integrity is protected transitively through the receipt signature. Schema `1.0.0` unsigned redaction projections instead protect derived-pack integrity through receipt hashes, Merkle roots, policy hashes, and derivation metadata that links back to the original source receipt hash.
 
 ### Receipt
 

@@ -1,23 +1,35 @@
 import type { FastifyInstance } from 'fastify';
 import {
-  loadPackFromDirectory,
-  redactPack,
-  generatePack,
+  cleanupExtractedPack,
+  createRedactedProjectionPack,
+  extractPackZipToTemp,
   keypairFromSeed,
+  loadPackFromDirectory,
+  packArchiveErrorHint,
+  PackArchiveError,
   canonicalizeString,
+  zipRawPackToBuffer,
 } from '@proofpack/core';
-import { unzipToTemp, findPackRoot, cleanupTemp, zipPack, ZipSlipError } from '../utils/zip.js';
 import { sendError } from '../utils/errors.js';
 import { recordRedactRequest } from '../utils/observability.js';
 
 const ZIP_MIME_TYPES = new Set(['application/zip', 'application/x-zip-compressed']);
 
-/** Ephemeral keypair for re-signing redacted packs */
-const redactSeed = new Uint8Array(32);
-redactSeed[0] = 0xaa;
-redactSeed[1] = 0xbb;
-redactSeed[2] = 0xcc;
-const redactKeypair = keypairFromSeed(redactSeed);
+function configuredRedactionKeypair() {
+  const seedB64 = process.env.PROOFPACK_REDACTION_SEED_B64;
+  if (!seedB64) return undefined;
+  const seed = Buffer.from(seedB64, 'base64');
+  if (seed.byteLength !== 32) {
+    throw new Error('PROOFPACK_REDACTION_SEED_B64 must decode to exactly 32 bytes');
+  }
+  return keypairFromSeed(new Uint8Array(seed));
+}
+
+function isPackArchiveError(err: unknown): err is PackArchiveError {
+  return (
+    err instanceof PackArchiveError || (err instanceof Error && err.name === 'PackArchiveError')
+  );
+}
 
 export async function redactRoute(app: FastifyInstance): Promise<void> {
   app.post('/api/redact', async (request, reply) => {
@@ -42,33 +54,20 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
     }
 
     const buffer = await data.toBuffer();
-    let tmpDir: string | undefined;
+    let extracted: Awaited<ReturnType<typeof extractPackZipToTemp>> | undefined;
 
     try {
-      tmpDir = unzipToTemp(Buffer.from(buffer));
-      const packRoot = findPackRoot(tmpDir);
-      const pack = loadPackFromDirectory(packRoot);
-
-      // Redact: remove payloads, generate commitments
-      const { publicPack, openings } = redactPack(pack);
-
-      // Re-generate the pack with redacted events (needs re-signing)
-      const newPack = generatePack({
-        runId: pack.manifest.run_id,
-        createdAt: pack.manifest.created_at,
-        producerName: pack.manifest.producer.name,
-        producerVersion: pack.manifest.producer.version,
-        events: publicPack.events,
-        policy: pack.policy,
-        policyYaml: new TextDecoder().decode(pack.raw.policy),
-        decisions: pack.decisions,
-        keypair: redactKeypair,
-        openings,
+      extracted = await extractPackZipToTemp(Buffer.from(buffer));
+      const pack = loadPackFromDirectory(extracted.packRoot);
+      const keypair = configuredRedactionKeypair();
+      const projection = createRedactedProjectionPack(pack, {
+        keypair,
+        signerPolicy: keypair ? 'configured_redaction_signer' : 'unsigned_projection',
       });
 
-      const zip = zipPack(
-        newPack.raw as unknown as Record<string, Uint8Array>,
-        newPack.inclusionProofs,
+      const zip = await zipRawPackToBuffer(
+        projection.pack.raw as unknown as Record<string, Uint8Array>,
+        projection.pack.inclusionProofs,
         canonicalizeString,
       );
       const durationMs = Date.now() - started;
@@ -78,11 +77,14 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
       return reply
         .header('Content-Type', 'application/zip')
         .header('Content-Disposition', 'attachment; filename="public.proofpack.zip"')
+        .header('X-ProofPack-Redaction-Derivation', projection.derivation.source_receipt_sha256)
+        .header('X-ProofPack-Redaction-Signer-Policy', projection.derivation.signer_policy)
         .send(zip);
     } catch (err) {
-      if (err instanceof ZipSlipError) {
+      if (isPackArchiveError(err)) {
         recordRedactRequest(Date.now() - started, false);
-        return sendError(reply, 400, 'ZIP_SLIP', err.message);
+        const status = err.code === 'PAYLOAD_TOO_LARGE' ? 413 : 400;
+        return sendError(reply, status, err.code, err.message, packArchiveErrorHint(err.code));
       }
       recordRedactRequest(Date.now() - started, false);
       return sendError(
@@ -93,7 +95,7 @@ export async function redactRoute(app: FastifyInstance): Promise<void> {
         'Ensure the zip contains a valid private ProofPack',
       );
     } finally {
-      if (tmpDir) cleanupTemp(tmpDir);
+      if (extracted) cleanupExtractedPack(extracted);
     }
   });
 }

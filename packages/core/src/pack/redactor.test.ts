@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { computeCommitment, redactPack } from './redactor.js';
+import { computeCommitment, createRedactedProjectionPack, redactPack } from './redactor.js';
 import { generatePack } from './generator.js';
+import { verifyPack } from './verifier.js';
 import { evaluateAll } from '../policy/engine.js';
 import { keypairFromSeed } from '../crypto/ed25519.js';
 import type { Event } from '../types/event.js';
@@ -150,5 +151,88 @@ describe('redactPack', () => {
       const commitment = computeCommitment(opening.payload, opening.salt_b64);
       expect(commitment).toBe(event!.payload_commitment);
     }
+  });
+
+  it('creates an unsigned redacted projection with source receipt derivation metadata', () => {
+    const events = makeEvents();
+    const decisions = evaluateAll(events, testPolicy);
+    const pack = generatePack({
+      runId: 'a1b2c3d4-e5f6-4000-a000-000000000001',
+      createdAt: '2026-01-15T10:00:00.000Z',
+      producerName: 'test',
+      producerVersion: '0.1.0',
+      events,
+      policy: testPolicy,
+      policyYaml,
+      decisions,
+      keypair,
+    });
+
+    const projection = createRedactedProjectionPack(pack);
+
+    expect(projection.pack.receipt.signed_block.derivation).toEqual(projection.derivation);
+    expect(projection.derivation.kind).toBe('redaction_projection');
+    expect(projection.derivation.signer_policy).toBe('unsigned_projection');
+    expect(projection.derivation.source_run_id).toBe(pack.manifest.run_id);
+    expect(projection.derivation.source_receipt_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(projection.pack.manifest.schema_version).toBe('1.0.0');
+    expect(projection.pack.receipt.signature).toBeUndefined();
+    expect(projection.pack.events[0]?.payload).toBeUndefined();
+    expect(projection.pack.events[0]?.payload_commitment).toBeDefined();
+
+    const report = verifyPack(projection.pack);
+    expect(report.verified).toBe(true);
+    expect(report.checks.find((c) => c.name === 'receipt.signature')?.details).toMatchObject({
+      unsigned_projection: true,
+      signature_count: 0,
+    });
+  });
+
+  it('fails trusted-key requirements for unsigned redacted projections', () => {
+    const events = makeEvents();
+    const decisions = evaluateAll(events, testPolicy);
+    const pack = generatePack({
+      runId: 'a1b2c3d4-e5f6-4000-a000-000000000001',
+      createdAt: '2026-01-15T10:00:00.000Z',
+      producerName: 'test',
+      producerVersion: '0.1.0',
+      events,
+      policy: testPolicy,
+      policyYaml,
+      decisions,
+      keypair,
+    });
+
+    const projection = createRedactedProjectionPack(pack);
+    const report = verifyPack(projection.pack, {
+      requireTrustedKey: true,
+      trustStore: { keys: [] },
+    });
+
+    expect(report.verified).toBe(false);
+    expect(report.checks.find((c) => c.name === 'receipt.trust')?.error).toContain(
+      'Unsigned projection has no signing key',
+    );
+  });
+
+  it('creates a signed redacted projection when a redaction signer is configured', () => {
+    const events = makeEvents();
+    const decisions = evaluateAll(events, testPolicy);
+    const pack = generatePack({
+      runId: 'a1b2c3d4-e5f6-4000-a000-000000000001',
+      createdAt: '2026-01-15T10:00:00.000Z',
+      producerName: 'test',
+      producerVersion: '0.1.0',
+      events,
+      policy: testPolicy,
+      policyYaml,
+      decisions,
+      keypair,
+    });
+
+    const projection = createRedactedProjectionPack(pack, { keypair });
+
+    expect(projection.derivation.signer_policy).toBe('configured_redaction_signer');
+    expect(projection.pack.receipt.signature).toBeDefined();
   });
 });

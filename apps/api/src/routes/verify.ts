@@ -1,12 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import fs from 'node:fs';
 import {
+  cleanupExtractedPack,
+  extractPackZipToTemp,
   loadPackFromDirectory,
+  packArchiveErrorHint,
+  PackArchiveError,
   verifyPack,
-  TrustStoreSchema,
+  parseTrustStoreJson,
+  TrustStoreParseError,
   type VerifyPackOptions,
 } from '@proofpack/core';
-import { unzipToTemp, findPackRoot, cleanupTemp, ZipSlipError } from '../utils/zip.js';
 import { sendError } from '../utils/errors.js';
 import { recordVerifyRequest } from '../utils/observability.js';
 
@@ -24,7 +28,7 @@ function getVerifyOptionsFromEnv(): VerifyPackOptions {
   let trustStore: VerifyPackOptions['trustStore'];
   if (trustStorePath) {
     const content = fs.readFileSync(trustStorePath, 'utf-8');
-    trustStore = TrustStoreSchema.parse(JSON.parse(content));
+    trustStore = parseTrustStoreJson(content);
   }
 
   return {
@@ -33,6 +37,19 @@ function getVerifyOptionsFromEnv(): VerifyPackOptions {
     requireTrustedKey: process.env.PROOFPACK_REQUIRE_TRUSTED_KEY === '1',
     requireTimestampAnchor: process.env.PROOFPACK_REQUIRE_TIMESTAMP_ANCHOR === '1',
   };
+}
+
+function isPackArchiveError(err: unknown): err is PackArchiveError {
+  return (
+    err instanceof PackArchiveError || (err instanceof Error && err.name === 'PackArchiveError')
+  );
+}
+
+function isTrustStoreParseError(err: unknown): err is TrustStoreParseError {
+  return (
+    err instanceof TrustStoreParseError ||
+    (err instanceof Error && err.name === 'TrustStoreParseError')
+  );
 }
 
 export async function verifyRoute(app: FastifyInstance): Promise<void> {
@@ -59,12 +76,11 @@ export async function verifyRoute(app: FastifyInstance): Promise<void> {
     }
 
     const buffer = await data.toBuffer();
-    let tmpDir: string | undefined;
+    let extracted: Awaited<ReturnType<typeof extractPackZipToTemp>> | undefined;
 
     try {
-      tmpDir = unzipToTemp(Buffer.from(buffer));
-      const packRoot = findPackRoot(tmpDir);
-      const pack = loadPackFromDirectory(packRoot);
+      extracted = await extractPackZipToTemp(Buffer.from(buffer));
+      const pack = loadPackFromDirectory(extracted.packRoot);
       const report = verifyPack(pack, getVerifyOptionsFromEnv());
       ok = report.verified;
       const durationMs = Date.now() - started;
@@ -84,9 +100,21 @@ export async function verifyRoute(app: FastifyInstance): Promise<void> {
         events_preview: report.events_preview,
       });
     } catch (err) {
-      if (err instanceof ZipSlipError) {
+      if (isPackArchiveError(err)) {
         recordVerifyRequest(Date.now() - started, false);
-        return sendError(reply, 400, 'ZIP_SLIP', err.message);
+        const status = err.code === 'PAYLOAD_TOO_LARGE' ? 413 : 400;
+        const code = err.code === 'INVALID_ZIP' ? 'INVALID_PACK' : err.code;
+        return sendError(reply, status, code, err.message, packArchiveErrorHint(err.code));
+      }
+      if (isTrustStoreParseError(err)) {
+        recordVerifyRequest(Date.now() - started, false);
+        return sendError(
+          reply,
+          400,
+          err.code,
+          err.message,
+          'Fix PROOFPACK_TRUST_STORE_PATH so it points to valid trust-store JSON.',
+        );
       }
       recordVerifyRequest(Date.now() - started, false);
       return sendError(
@@ -97,7 +125,7 @@ export async function verifyRoute(app: FastifyInstance): Promise<void> {
         'Ensure the zip contains a valid ProofPack directory',
       );
     } finally {
-      if (tmpDir) cleanupTemp(tmpDir);
+      if (extracted) cleanupExtractedPack(extracted);
     }
   });
 }

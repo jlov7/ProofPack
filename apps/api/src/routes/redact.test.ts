@@ -6,7 +6,7 @@ import { canonicalizeString, verifyPack, loadPackFromDirectory } from '@proofpac
 import { zipPack, unzipToTemp, findPackRoot, cleanupTemp } from '../utils/zip.js';
 import type { PackContents } from '@proofpack/core';
 
-function packToZipBuffer(pack: PackContents): Buffer {
+async function packToZipBuffer(pack: PackContents): Promise<Buffer> {
   return zipPack(
     pack.raw as unknown as Record<string, Uint8Array>,
     pack.inclusionProofs,
@@ -53,7 +53,7 @@ describe('POST /api/redact', () => {
 
   it('returns a zip of the redacted public pack', async () => {
     const pack = buildDemoPack();
-    const zip = packToZipBuffer(pack);
+    const zip = await packToZipBuffer(pack);
     const { body, contentType } = buildMultipartPayload(zip);
 
     const res = await app.inject({
@@ -65,18 +65,28 @@ describe('POST /api/redact', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('application/zip');
+    expect(res.headers['x-proofpack-redaction-derivation']).toMatch(/^[a-f0-9]{64}$/);
+    expect(res.headers['x-proofpack-redaction-signer-policy']).toBe('unsigned_projection');
 
     // Extract and verify the public pack
     const resultBuffer = Buffer.from(res.rawPayload);
-    const tmpDir = unzipToTemp(resultBuffer);
+    const tmpDir = await unzipToTemp(resultBuffer);
 
     try {
       const packRoot = findPackRoot(tmpDir);
       const publicPack = loadPackFromDirectory(packRoot);
 
-      // Public pack should verify (re-signed)
+      expect(publicPack.manifest.schema_version).toBe('1.0.0');
+      expect(publicPack.receipt.signature).toBeUndefined();
+      expect(publicPack.receipt.signed_block.derivation?.signer_policy).toBe('unsigned_projection');
+
+      // Public pack should verify its projection integrity without pretending to be producer-signed.
       const report = verifyPack(publicPack);
       expect(report.verified).toBe(true);
+      expect(report.checks.find((c) => c.name === 'receipt.signature')?.details).toMatchObject({
+        unsigned_projection: true,
+        signature_count: 0,
+      });
 
       // Events should have commitments, not payloads
       const eventsWithCommitments = publicPack.events.filter((e) => e.payload_commitment);

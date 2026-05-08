@@ -40,7 +40,7 @@ describe('GET /api/demo-pack', () => {
     });
 
     const buffer = Buffer.from(res.rawPayload);
-    const tmpDir = unzipToTemp(buffer);
+    const tmpDir = await unzipToTemp(buffer);
 
     try {
       const packRoot = findPackRoot(tmpDir);

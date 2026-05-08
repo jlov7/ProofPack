@@ -13,6 +13,7 @@ if (!fs.existsSync(configPath)) {
 const configRaw = fs.readFileSync(configPath, 'utf8');
 const config = JSON.parse(configRaw);
 const allowedLicenses = new Set(config.allowed_licenses ?? []);
+const allowedPackagesByLicense = config.allowed_packages_by_license ?? {};
 const allowedUnknownPackages = new Set(config.allowed_unknown_license_packages ?? []);
 
 if (allowedLicenses.size === 0) {
@@ -28,9 +29,21 @@ const output = execSync('pnpm licenses list --json', {
 
 const byLicense = JSON.parse(output);
 const discoveredLicenses = Object.keys(byLicense);
-const disallowed = discoveredLicenses.filter(
-  (license) => license !== 'Unknown' && !allowedLicenses.has(license),
-);
+const disallowed = [];
+
+for (const license of discoveredLicenses) {
+  if (license === 'Unknown' || allowedLicenses.has(license)) continue;
+
+  const allowedPackages = new Set(allowedPackagesByLicense[license] ?? []);
+  const packages = byLicense[license] ?? [];
+  const unapprovedPackages = packages
+    .map((pkg) => pkg.name)
+    .filter((name) => !allowedPackages.has(name));
+
+  if (unapprovedPackages.length > 0) {
+    disallowed.push(`${license} (${unapprovedPackages.join(', ')})`);
+  }
+}
 
 if (disallowed.length > 0) {
   console.error('Dependency license policy violation.');

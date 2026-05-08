@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="flex h-screen overflow-hidden">
+      <body className="workbench-surface min-h-[100dvh] overflow-hidden">
         <LeftRail />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="h-[100dvh] overflow-y-auto pb-20 md:ml-60 md:pb-0">{children}</main>
         <CommandPalette />
       </body>
     </html>

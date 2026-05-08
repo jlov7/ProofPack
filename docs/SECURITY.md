@@ -39,6 +39,7 @@ What ProofPack does **not** claim:
 - It does not claim that the agent's actions were beneficial or correct — only that the log faithfully represents what the agent did
 - It does not claim that the policy was appropriate for the context — only that it was applied consistently
 - It does not provide real-time enforcement — it provides post-hoc auditability
+- Unsigned public redaction projections do not claim new producer authority. They prove derived-pack integrity and link back to the original receipt hash, while configured redaction signers can add an explicit derived-artifact attestation.
 
 ---
 
@@ -241,11 +242,11 @@ ProofPack does not provide key distribution, rotation, or revocation. The privat
 
 **Mitigation:** Users who require key management should use an external PKI or hardware security module (HSM) for key storage and implement a key rotation policy.
 
-### Timestamps are not verified
+### Timestamp accuracy still depends on the producer
 
-ProofPack records the timestamps provided by the agent. It does not verify that these timestamps are accurate or monotonically increasing. An agent that records false timestamps will produce a pack that passes verification.
+ProofPack records the timestamps provided by the agent. Strict verification checks that event timestamps are non-decreasing and can require a timestamp anchor, but it cannot prove that the original agent clock was honest.
 
-**Mitigation:** A future check (`timestamp.ordering`) could verify that event timestamps are non-decreasing. This would not prevent timestamp fabrication, but it would detect obvious manipulation.
+**Mitigation:** Use strict profile with timestamp anchors for release evidence. Independent clock attestation is still needed when producer-clock truth matters.
 
 ### The pack producer controls what events are logged
 

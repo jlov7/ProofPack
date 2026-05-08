@@ -70,10 +70,17 @@ export default function DisclosurePage() {
           </p>
           <p>
             <strong className="text-[var(--text-secondary)]">2. Redaction:</strong> The public pack
-            replaces payloads with their commitment hashes. The Merkle tree remains valid.
+            replaces payloads with their commitment hashes and records the source receipt hash in
+            the derived receipt block.
           </p>
           <p>
-            <strong className="text-[var(--text-secondary)]">3. Opening:</strong> To reveal a
+            <strong className="text-[var(--text-secondary)]">3. Projection:</strong> If no redaction
+            signer is configured, the public pack is an unsigned projection with explicit derivation
+            metadata. Set <code>PROOFPACK_REDACTION_SEED_B64</code> to produce a signed redaction
+            artifact.
+          </p>
+          <p>
+            <strong className="text-[var(--text-secondary)]">4. Opening:</strong> To reveal a
             specific event, share its payload and salt. Anyone can verify:{' '}
             <code className="font-mono text-[var(--accent-green)]">
               hash(payload || salt) === commitment

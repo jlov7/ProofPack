@@ -24,16 +24,16 @@
 
 ## Primary Threats and Mitigations
 
-| Threat                        | Impact                      | Mitigation                                                                      |
-| ----------------------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| Zip-slip on uploads           | File overwrite / escape     | Entry path normalization + rejection in zip utils                               |
-| Receipt tampering             | False verification          | Ed25519 signature check over RFC8785 canonicalized signed block                 |
-| Event log mutation/reordering | Audit forgery               | RFC6962 Merkle root + inclusion checks                                          |
-| Policy/decision swaps         | Compliance evasion          | SHA-256 hashes bound in signed receipt                                          |
-| Disclosure forgery            | False public claims         | Commitment verification with strict salt checks and duplicate-opening rejection |
-| API abuse flood               | Availability degradation    | Rate limiting and payload-size enforcement                                      |
-| Unauthorized API use          | Untrusted access            | Optional bearer-token auth mode                                                 |
-| Supply-chain drift            | Unknown legal/security risk | License allowlist gate + vulnerability policy gate + SBOM generation            |
+| Threat                        | Impact                      | Mitigation                                                                                                               |
+| ----------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Zip-slip on uploads           | File overwrite / escape     | Entry path normalization + rejection in zip utils                                                                        |
+| Receipt tampering             | False verification          | Ed25519 signature check over RFC8785 canonicalized receipt block; unsigned projections must declare their derived status |
+| Event log mutation/reordering | Audit forgery               | RFC6962 Merkle root + inclusion checks                                                                                   |
+| Policy/decision swaps         | Compliance evasion          | SHA-256 hashes bound in signed receipt                                                                                   |
+| Disclosure forgery            | False public claims         | Commitment verification with strict salt checks and duplicate-opening rejection                                          |
+| API abuse flood               | Availability degradation    | Rate limiting and payload-size enforcement                                                                               |
+| Unauthorized API use          | Untrusted access            | Optional bearer-token auth mode                                                                                          |
+| Supply-chain drift            | Unknown legal/security risk | License allowlist gate + vulnerability policy gate + SBOM generation                                                     |
 
 ## Residual Risks
 

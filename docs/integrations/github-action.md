@@ -25,5 +25,6 @@ jobs:
 ## Inputs
 
 - `pack_path` (required): path to pack directory or zip
-- `node_version` (optional, default `20`)
-- `pnpm_version` (optional, default `10`)
+- `node_version` (optional, default `24`)
+
+pnpm is resolved from ProofPack's `packageManager` field to avoid workflow/package-manager drift.

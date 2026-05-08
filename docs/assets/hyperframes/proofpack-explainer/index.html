@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProofPack Explainer</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div
+      id="proofpack-explainer"
+      data-composition-id="proofpack-explainer"
+      data-width="1920"
+      data-height="1080"
+      data-start="0"
+      data-duration="72"
+    >
+      <section id="scene-problem" class="scene">
+        <div>
+          <div class="eyebrow">Problem</div>
+          <h1>AI agents need receipts, not vibes.</h1>
+        </div>
+        <div class="workspace">
+          <div class="panel">
+            <div class="panel-title">
+              <span>Unverified run history</span>
+              <span class="chip danger">mutable</span>
+            </div>
+            <div class="event-list">
+              <div class="event">
+                <span class="id mono">00:00</span><span>agent reads config</span
+                ><span class="decision">allow</span>
+              </div>
+              <div class="event hold">
+                <span class="id mono">00:08</span><span>shell command requested</span
+                ><span class="decision">hold</span>
+              </div>
+              <div class="event deny">
+                <span class="id mono">00:35</span><span>network egress attempt</span
+                ><span class="decision">deny</span>
+              </div>
+              <div class="event fail">
+                <span class="id mono">later</span><span>one line changes quietly</span
+                ><span class="decision">unknown</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <span>What reviewers ask</span>
+              <span class="chip amber">prove it</span>
+            </div>
+            <div class="receipt">
+              <div class="receipt-row">
+                <strong>Who?</strong><span>Which producer signed this?</span>
+              </div>
+              <div class="receipt-row">
+                <strong>What?</strong><span>Which exact events were committed?</span>
+              </div>
+              <div class="receipt-row">
+                <strong>Policy?</strong><span>Which decisions were applied?</span>
+              </div>
+              <div class="receipt-row">
+                <strong>Share?</strong><span>What can leave the room safely?</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          A transcript is easy to edit. ProofPack turns the run into evidence that can be checked
+          offline.
+        </p>
+      </section>
+
+      <section id="scene-generate" class="scene">
+        <div>
+          <div class="eyebrow">Generate</div>
+          <h2>Every event becomes part of a cryptographic chain.</h2>
+        </div>
+        <div class="flow">
+          <div class="flow-step"><span class="num mono">01</span>Canonical event bytes</div>
+          <div class="flow-step"><span class="num mono">02</span>Policy decisions JSONL</div>
+          <div class="flow-step"><span class="num mono">03</span>RFC6962 Merkle tree</div>
+          <div class="flow-step"><span class="num mono">04</span>Receipt block hashes</div>
+          <div class="flow-step"><span class="num mono">05</span>Ed25519 producer signature</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">
+            <span class="mono">receipt.json</span>
+            <span class="chip signal">portable</span>
+          </div>
+          <div class="receipt">
+            <div class="receipt-row">
+              <strong>run_id</strong
+              ><span class="mono hash">d3e0baa5-de10-4000-a000-000000000000</span>
+            </div>
+            <div class="receipt-row">
+              <strong>merkle.root</strong
+              ><span class="mono hash">18f4b8e22a31c0b6f7d889a25f9d2c8f68f0e9d0b4c7a1</span>
+            </div>
+            <div class="receipt-row">
+              <strong>policy.sha256</strong
+              ><span class="mono hash">9af79e4f1e806b4c25d28e2a2cbf31ca</span>
+            </div>
+            <div class="receipt-row">
+              <strong>signature</strong><span class="mono hash">Ed25519 / RFC8785 / SHA-256</span>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          The server is not trusted. Verification follows the bytes in the pack.
+        </p>
+      </section>
+
+      <section id="scene-verify" class="scene">
+        <div>
+          <div class="eyebrow">Verify</div>
+          <h2>The workbench checks the evidence, not the story.</h2>
+        </div>
+        <div class="workspace">
+          <div class="panel">
+            <div class="panel-title">
+              <span>Standard profile</span>
+              <span class="chip signal">VERIFIED</span>
+            </div>
+            <div class="checks">
+              <div class="check"><span class="mark">✓</span>manifest.schema</div>
+              <div class="check"><span class="mark">✓</span>receipt.signature</div>
+              <div class="check"><span class="mark">✓</span>merkle.root</div>
+              <div class="check"><span class="mark">✓</span>merkle.inclusion_all</div>
+              <div class="check"><span class="mark">✓</span>policy.hash</div>
+              <div class="check"><span class="mark">✓</span>disclosure.openings</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <span>Operator posture</span>
+              <span class="chip signal">offline</span>
+            </div>
+            <div class="receipt">
+              <div class="receipt-row">
+                <strong>Profile</strong><span>standard / strict / permissive</span>
+              </div>
+              <div class="receipt-row">
+                <strong>Trust</strong><span>key lifecycle and revocation aware</span>
+              </div>
+              <div class="receipt-row">
+                <strong>Timeline</strong><span>13 events with policy decisions</span>
+              </div>
+              <div class="receipt-row">
+                <strong>Proofs</strong><span>Merkle path and signature material</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          A reviewer can triage failures, inspect the timeline, trace proofs, and export audit
+          evidence.
+        </p>
+      </section>
+
+      <section id="scene-tamper" class="scene">
+        <div>
+          <div class="eyebrow">Tamper</div>
+          <h2>Change one event, and the chain breaks for the right reason.</h2>
+        </div>
+        <div class="workspace">
+          <div class="panel">
+            <div class="panel-title">
+              <span>Modified event</span>
+              <span class="chip danger">tampered</span>
+            </div>
+            <div class="event-list">
+              <div class="event">
+                <span class="id mono">0006</span><span>shell.exec grep workspace</span
+                ><span class="decision">hold</span>
+              </div>
+              <div class="event fail">
+                <span class="id mono">0009</span><span>result edited after signing</span
+                ><span class="decision">fail</span>
+              </div>
+            </div>
+            <div class="tamper-line" style="margin-top: 42px"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <span>Verification result</span>
+              <span class="chip danger">NOT VERIFIED</span>
+            </div>
+            <div class="checks">
+              <div class="check fail"><span class="mark">×</span>receipt.signature</div>
+              <div class="check fail"><span class="mark">×</span>merkle.root</div>
+              <div class="check fail"><span class="mark">×</span>merkle.inclusion_all</div>
+              <div class="check"><span class="mark">✓</span>manifest.schema</div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          The failure is actionable: restore the original bytes or regenerate and re-sign the pack.
+        </p>
+      </section>
+
+      <section id="scene-disclosure" class="scene">
+        <div>
+          <div class="eyebrow">Disclose</div>
+          <h2>Share public evidence without leaking private payloads.</h2>
+        </div>
+        <div class="workspace">
+          <div class="panel">
+            <div class="panel-title">
+              <span>Private payloads</span>
+              <span class="chip amber">kept inside</span>
+            </div>
+            <div class="commitments">
+              <div class="commitment">
+                <div class="label">event payload</div>
+                <div class="value mono">{"path":"workspace/secrets.env"}</div>
+              </div>
+              <div class="commitment">
+                <div class="label">opening</div>
+                <div class="value mono">payload + salt, shared only when needed</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <span>Public projection</span>
+              <span class="chip signal">safe to inspect</span>
+            </div>
+            <div class="commitments">
+              <div class="commitment">
+                <div class="label">payload_commitment</div>
+                <div class="value mono">b84d5a...7e02</div>
+              </div>
+              <div class="commitment">
+                <div class="label">source_receipt_sha256</div>
+                <div class="value mono">4de13f...a901</div>
+              </div>
+              <div class="commitment">
+                <div class="label">signer_policy</div>
+                <div class="value mono">unsigned_projection</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          Unsigned projections are honest derived artifacts. Add a configured redaction signer when
+          you need a new attestation.
+        </p>
+      </section>
+
+      <section id="scene-final" class="scene">
+        <div>
+          <div class="eyebrow">ProofPack</div>
+          <h1>Portable receipts for serious agent work.</h1>
+        </div>
+        <div class="final-grid">
+          <div class="final-card">
+            <strong>Developer-first</strong
+            ><span>CLI, API, and web workbench share the same verifier core.</span>
+          </div>
+          <div class="final-card">
+            <strong>High-trust</strong
+            ><span
+              >Signatures, Merkle proofs, trust stores, archive hardening, and release
+              attestations.</span
+            >
+          </div>
+          <div class="final-card">
+            <strong>Open source</strong
+            ><span
+              >No account required. No server trusted. The pack either verifies or it does
+              not.</span
+            >
+          </div>
+        </div>
+        <p class="caption">
+          Generate a pack. Tamper with it. Watch verification fail. Share only the evidence that
+          should leave the room.
+        </p>
+      </section>
+
+      <div class="watermark mono">ProofPack / evidence workbench</div>
+
+      <script>
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        const scenes = [
+          ['#scene-problem', 0, 10],
+          ['#scene-generate', 10, 12],
+          ['#scene-verify', 22, 12],
+          ['#scene-tamper', 34, 12],
+          ['#scene-disclosure', 46, 14],
+          ['#scene-final', 60, 12],
+        ];
+
+        for (const [selector, start, duration] of scenes) {
+          tl.set(selector, { opacity: 1 }, start);
+          tl.from(
+            `${selector} .eyebrow`,
+            { y: 24, opacity: 0, duration: 0.5, ease: 'power3.out' },
+            start + 0.15,
+          );
+          tl.from(
+            `${selector} h1, ${selector} h2`,
+            { y: 42, opacity: 0, duration: 0.7, ease: 'power3.out' },
+            start + 0.35,
+          );
+          tl.from(
+            `${selector} .panel, ${selector} .flow-step, ${selector} .final-card`,
+            { y: 34, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out' },
+            start + 1.1,
+          );
+          tl.from(
+            `${selector} .caption`,
+            { y: 18, opacity: 0, duration: 0.45, ease: 'power2.out' },
+            start + 1.45,
+          );
+          tl.to(
+            selector,
+            { opacity: 0, duration: 0.45, ease: 'power2.in' },
+            start + duration - 0.45,
+          );
+        }
+
+        tl.from('.tamper-line', { scaleX: 0, duration: 1.2, ease: 'power2.out' }, 38.1);
+        tl.to('.watermark', { opacity: 0.4, duration: 0.01 }, 0);
+
+        window.__timelines['proofpack-explainer'] = tl;
+      </script>
+    </div>
+  </body>
+</html>

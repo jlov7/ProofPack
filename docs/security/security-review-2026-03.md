@@ -26,7 +26,7 @@
 
 ### Low Severity
 
-- API malformed-zip test surfaces upstream `unzip` stderr noise; behavior is safe but logs can be noisy.
+- None open. Previous malformed-zip stderr noise was resolved by replacing shell-backed archive handling with shared structured archive errors.
 
 ## Controls Confirmed
 

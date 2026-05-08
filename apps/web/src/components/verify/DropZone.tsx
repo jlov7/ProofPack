@@ -42,11 +42,12 @@ export function DropZone({ onFile, loading }: DropZoneProps) {
 
   return (
     <div
-      className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer ${
+      className={`focus-ring relative cursor-pointer rounded-2xl border border-dashed p-8 text-center transition-all duration-200 md:p-12 ${
         dragActive
-          ? 'border-[var(--accent-green)] bg-[var(--accent-green)]/5'
-          : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+          ? 'border-[var(--accent-green)] bg-[var(--accent-green)]/10'
+          : 'border-[var(--border)] bg-[var(--bg-primary)]/78 hover:border-[var(--accent-blue)] hover:bg-[var(--bg-primary)]'
       } ${loading ? 'pointer-events-none opacity-60' : ''}`}
+      tabIndex={0}
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
@@ -57,13 +58,13 @@ export function DropZone({ onFile, loading }: DropZoneProps) {
 
       {loading ? (
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[var(--accent-green)] border-t-transparent rounded-full animate-spin" />
+          <div className="h-9 w-9 rounded-full border-2 border-[var(--accent-green)] border-t-transparent animate-spin" />
           <p className="text-sm text-[var(--text-secondary)]">Verifying pack...</p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3">
           <svg
-            className="w-12 h-12 text-[var(--text-muted)]"
+            className="h-12 w-12 text-[var(--accent-green)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -76,10 +77,12 @@ export function DropZone({ onFile, loading }: DropZoneProps) {
             />
           </svg>
           <div>
-            <p className="text-sm text-[var(--text-primary)]">
-              Drop a <code className="text-[var(--accent-green)]">.proofpack.zip</code> here
+            <p className="text-base font-medium text-[var(--text-primary)]">
+              Drop a <code className="text-[var(--accent-green)]">.proofpack.zip</code>
             </p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">or click to browse</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              or click to browse. Upload stays local to this server process.
+            </p>
           </div>
         </div>
       )}

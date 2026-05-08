@@ -199,7 +199,7 @@ function makeDemoEvents(): Event[] {
 /** Cache the demo pack zip so we generate only once per server lifecycle */
 let cachedDemoZip: Buffer | null = null;
 
-function getDemoPackZip(): Buffer {
+async function getDemoPackZip(): Promise<Buffer> {
   if (cachedDemoZip) return cachedDemoZip;
 
   const events = makeDemoEvents();
@@ -216,7 +216,7 @@ function getDemoPackZip(): Buffer {
     keypair: demoKeypair,
   });
 
-  cachedDemoZip = zipPack(
+  cachedDemoZip = await zipPack(
     pack.raw as unknown as Record<string, Uint8Array>,
     pack.inclusionProofs,
     canonicalizeString,
@@ -243,7 +243,7 @@ export function buildDemoPack() {
 
 export async function demoRoute(app: FastifyInstance): Promise<void> {
   app.get('/api/demo-pack', async (_request, reply) => {
-    const zip = getDemoPackZip();
+    const zip = await getDemoPackZip();
     return reply
       .header('Content-Type', 'application/zip')
       .header('Content-Disposition', 'attachment; filename="demo.proofpack.zip"')

@@ -116,7 +116,9 @@ export default function ExportPage() {
             <p className="text-xs text-[var(--text-muted)] mt-1">
               Redacted pack with payloads replaced by commitments. Safe to share publicly.
             </p>
-            <p className="text-[10px] text-emerald-400 mt-1">Re-signed, independently verifiable</p>
+            <p className="text-[10px] text-emerald-400 mt-1">
+              Derived with source receipt hash recorded in the receipt block
+            </p>
           </div>
           <button
             onClick={handleExportPublic}

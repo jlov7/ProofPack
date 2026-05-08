@@ -20,6 +20,24 @@ export const TrustStoreSchema = z.object({
 export type TrustedKey = z.infer<typeof TrustedKeySchema>;
 export type TrustStore = z.infer<typeof TrustStoreSchema>;
 
+export class TrustStoreParseError extends Error {
+  readonly code = 'INVALID_TRUST_STORE';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'TrustStoreParseError';
+  }
+}
+
+export function parseTrustStoreJson(raw: string): TrustStore {
+  try {
+    return TrustStoreSchema.parse(JSON.parse(raw));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new TrustStoreParseError(message);
+  }
+}
+
 export interface TrustEvaluation {
   ok: boolean;
   matched: Array<{

@@ -27,6 +27,14 @@ export const HistoryRefSchema = z.object({
   previous_root_hash: z.string().regex(/^[a-fA-F0-9]{64}$/),
 });
 
+export const RedactionDerivationSchema = z.object({
+  kind: z.literal('redaction_projection'),
+  source_run_id: z.string().uuid(),
+  source_receipt_sha256: z.string().regex(/^[a-fA-F0-9]{64}$/),
+  payload_mode: z.literal('payload_commitments'),
+  signer_policy: z.enum(['configured_redaction_signer', 'unsigned_projection']),
+});
+
 export const SignedBlockSchema = z.object({
   schema_version: SchemaVersionSchema,
   run_id: z.string().uuid(),
@@ -37,6 +45,7 @@ export const SignedBlockSchema = z.object({
   artifact: ArtifactRefSchema,
   timestamp_anchor: TimestampAnchorSchema.optional(),
   history: HistoryRefSchema.optional(),
+  derivation: RedactionDerivationSchema.optional(),
 });
 
 export const SignatureSchema = z.object({
@@ -58,10 +67,24 @@ export const ReceiptSchema = z
   .superRefine((value, ctx) => {
     const hasSingle = !!value.signature;
     const hasMulti = !!value.signatures && value.signatures.length > 0;
-    if (!hasSingle && !hasMulti) {
+    const isUnsignedProjection =
+      value.signed_block.schema_version === '1.0.0' &&
+      value.signed_block.derivation?.kind === 'redaction_projection' &&
+      value.signed_block.derivation.signer_policy === 'unsigned_projection';
+
+    if (isUnsignedProjection && (hasSingle || hasMulti)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Receipt must contain signature or signatures',
+        message: 'unsigned_projection receipts must not contain signatures',
+        path: ['signature'],
+      });
+    }
+
+    if (!hasSingle && !hasMulti && !isUnsignedProjection) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Receipt must contain signature or signatures unless it is a schema 1.0.0 unsigned redaction projection',
         path: ['signature'],
       });
     }
@@ -79,4 +102,5 @@ export type SignedBlock = z.infer<typeof SignedBlockSchema>;
 export type Signature = z.infer<typeof SignatureSchema>;
 export type TimestampAnchor = z.infer<typeof TimestampAnchorSchema>;
 export type HistoryRef = z.infer<typeof HistoryRefSchema>;
+export type RedactionDerivation = z.infer<typeof RedactionDerivationSchema>;
 export type Receipt = z.infer<typeof ReceiptSchema>;

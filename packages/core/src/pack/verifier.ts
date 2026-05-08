@@ -14,6 +14,7 @@ import type {
   VerificationReport,
   EventPreview,
   VerifyPackOptions,
+  VerificationProgress,
 } from './types.js';
 import type { Signature } from '../types/receipt.js';
 
@@ -35,6 +36,9 @@ function failureHint(name: string, error: string): string | undefined {
   }
   if (name === 'disclosure.openings') {
     return 'Ensure each opening uses the original payload and salt from redaction output.';
+  }
+  if (name === 'events.timestamp_order') {
+    return 'Sort events by non-decreasing timestamp before generating the pack.';
   }
   if (name === 'timestamp.anchor') {
     return 'Attach a trusted timestamp anchor with timestamp >= created_at.';
@@ -90,6 +94,14 @@ function getReceiptSignatures(pack: PackContents): Signature[] {
   throw new Error('Receipt contains no signatures');
 }
 
+function isUnsignedProjection(pack: PackContents): boolean {
+  return (
+    pack.receipt.signed_block.schema_version === '1.0.0' &&
+    pack.receipt.signed_block.derivation?.kind === 'redaction_projection' &&
+    pack.receipt.signed_block.derivation.signer_policy === 'unsigned_projection'
+  );
+}
+
 export function verifyPack(
   pack: PackContents,
   options: VerifyPackOptions = {},
@@ -115,6 +127,18 @@ export function verifyPack(
   // Check 2: receipt.signature — verify Ed25519 over canonical signed_block
   checks.push(
     check('receipt.signature', () => {
+      if (isUnsignedProjection(pack)) {
+        return {
+          signature_count: 0,
+          valid_signatures: 0,
+          threshold: 0,
+          public_keys: [],
+          unsigned_projection: true,
+          signer_policy: 'unsigned_projection',
+          source_receipt_sha256: pack.receipt.signed_block.derivation?.source_receipt_sha256,
+        };
+      }
+
       const canonicalBytes = canonicalize(pack.receipt.signed_block);
       const signatures = getReceiptSignatures(pack);
       const threshold = pack.receipt.threshold ?? signatures.length;
@@ -154,6 +178,10 @@ export function verifyPack(
       check('receipt.trust', () => {
         if (!options.trustStore) {
           throw new Error('No trust store provided');
+        }
+
+        if (isUnsignedProjection(pack)) {
+          throw new Error('Unsigned projection has no signing key to evaluate');
         }
 
         const signatures = getReceiptSignatures(pack);
@@ -252,6 +280,26 @@ export function verifyPack(
     }),
   );
 
+  // Strict ordering check: catches obvious timestamp manipulation or bad producer ordering.
+  if (strict) {
+    checks.push(
+      check('events.timestamp_order', () => {
+        let previous = Number.NEGATIVE_INFINITY;
+        for (const event of pack.events) {
+          const current = Date.parse(event.ts);
+          if (Number.isNaN(current)) {
+            throw new Error(`Event ${event.event_id} has an invalid timestamp`);
+          }
+          if (current < previous) {
+            throw new Error(`Event ${event.event_id} timestamp is earlier than the previous event`);
+          }
+          previous = current;
+        }
+        return { events_checked: pack.events.length };
+      }),
+    );
+  }
+
   // Optional timestamp check for anchored packs and strict mode.
   if (pack.receipt.signed_block.timestamp_anchor || options.requireTimestampAnchor || strict) {
     checks.push(
@@ -321,4 +369,25 @@ export function verifyPack(
     checks,
     events_preview: buildEventsPreview(pack),
   };
+}
+
+export function verifyPackWithProgress(
+  pack: PackContents,
+  options: VerifyPackOptions = {},
+  onProgress?: (progress: VerificationProgress) => void,
+): VerificationReport {
+  const total = 7;
+  const phases: VerificationProgress[] = [
+    { phase: 'manifest', completed: 1, total, message: 'Validating manifest and receipt schema' },
+    { phase: 'signature', completed: 2, total, message: 'Verifying receipt signatures' },
+    { phase: 'merkle', completed: 3, total, message: 'Recomputing Merkle root' },
+    { phase: 'merkle', completed: 4, total, message: 'Checking inclusion proofs' },
+    { phase: 'policy', completed: 5, total, message: 'Comparing policy and decision hashes' },
+    { phase: 'disclosure', completed: 6, total, message: 'Checking disclosure openings' },
+  ];
+
+  for (const progress of phases) onProgress?.(progress);
+  const report = verifyPack(pack, options);
+  onProgress?.({ phase: 'complete', completed: total, total, message: 'Verification complete' });
+  return report;
 }

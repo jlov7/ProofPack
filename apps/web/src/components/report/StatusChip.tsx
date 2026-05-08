@@ -3,14 +3,14 @@
 export function StatusChip({ verified }: { verified: boolean }) {
   return (
     <div
-      className={`inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-bold transition-all animate-scale-pulse ${
+      className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-bold tracking-[0.12em] transition-all ${
         verified
-          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-          : 'bg-red-500/15 text-red-400 border border-red-500/30'
+          ? 'border-[var(--accent-green)]/35 bg-[var(--accent-green)]/12 text-[var(--accent-green)]'
+          : 'border-[var(--accent-red)]/35 bg-[var(--accent-red)]/12 text-red-200'
       }`}
     >
       {verified ? (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -19,7 +19,7 @@ export function StatusChip({ verified }: { verified: boolean }) {
           />
         </svg>
       ) : (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

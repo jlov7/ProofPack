@@ -1,6 +1,10 @@
 import { canonicalize } from '../crypto/canonical.js';
 import { sha256Hex } from '../crypto/hash.js';
+import { generatePack } from './generator.js';
 import type { Event } from '../types/event.js';
+import type { Keypair } from '../crypto/ed25519.js';
+import type { Policy, Decision } from '../types/policy.js';
+import type { RedactionDerivation } from '../types/receipt.js';
 import type { PackContents, Opening } from './types.js';
 
 /** Generate a random 32-byte salt as a base64 string. */
@@ -65,4 +69,52 @@ export function redactPack(pack: PackContents): { publicPack: PackContents; open
   };
 
   return { publicPack, openings };
+}
+
+export interface CreateRedactedProjectionOptions {
+  keypair?: Keypair;
+  signerPolicy?: RedactionDerivation['signer_policy'];
+  policy?: Policy;
+  decisions?: Decision[];
+}
+
+export interface RedactedProjectionResult {
+  pack: PackContents;
+  openings: Opening[];
+  derivation: RedactionDerivation;
+}
+
+export function createRedactedProjectionPack(
+  sourcePack: PackContents,
+  options: CreateRedactedProjectionOptions = {},
+): RedactedProjectionResult {
+  const { publicPack, openings } = redactPack(sourcePack);
+  const signerPolicy =
+    options.signerPolicy ??
+    (options.keypair ? 'configured_redaction_signer' : 'unsigned_projection');
+  const derivation: RedactionDerivation = {
+    kind: 'redaction_projection',
+    source_run_id: sourcePack.manifest.run_id,
+    source_receipt_sha256: sha256Hex(sourcePack.raw.receipt),
+    payload_mode: 'payload_commitments',
+    signer_policy: signerPolicy,
+  };
+
+  const pack = generatePack({
+    runId: sourcePack.manifest.run_id,
+    createdAt: sourcePack.manifest.created_at,
+    producerName: sourcePack.manifest.producer.name,
+    producerVersion: sourcePack.manifest.producer.version,
+    events: publicPack.events,
+    policy: options.policy ?? sourcePack.policy,
+    policyYaml: new TextDecoder().decode(sourcePack.raw.policy),
+    decisions: options.decisions ?? sourcePack.decisions,
+    keypair: options.keypair,
+    unsigned: signerPolicy === 'unsigned_projection',
+    schemaVersion: signerPolicy === 'unsigned_projection' ? '1.0.0' : undefined,
+    openings,
+    derivation,
+  });
+
+  return { pack, openings, derivation };
 }

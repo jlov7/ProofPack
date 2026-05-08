@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import {
   loadPackFromDirectory,
   verifyPack,
-  TrustStoreSchema,
+  parseTrustStoreJson,
   type VerificationReport,
   type VerificationCheck,
   type VerificationProfile,
@@ -20,8 +20,7 @@ export interface VerifyCommandOptions {
 
 function loadTrustStore(trustStorePath: string): TrustStore {
   const raw = fs.readFileSync(trustStorePath, 'utf-8');
-  const parsed = JSON.parse(raw) as unknown;
-  return TrustStoreSchema.parse(parsed);
+  return parseTrustStoreJson(raw);
 }
 
 function checkDescription(c: VerificationCheck): string {
@@ -50,6 +49,10 @@ function checkDescription(c: VerificationCheck): string {
     case 'disclosure.openings': {
       if (c.details.skipped) return 'No openings (private pack)';
       return `${c.details.openings} openings verified`;
+    }
+    case 'events.timestamp_order': {
+      const count = c.details.events_checked ?? '?';
+      return `Event timestamps are non-decreasing (${count} events)`;
     }
     case 'timestamp.anchor': {
       const ts = c.details.timestamp ?? '?';

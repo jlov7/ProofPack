@@ -6,7 +6,13 @@ import { createHistoryRef } from './history.js';
 import { fingerprintPublicKeyB64 } from './trust.js';
 import type { Keypair } from '../crypto/ed25519.js';
 import type { Manifest } from '../types/manifest.js';
-import type { Receipt, SignedBlock, Signature, TimestampAnchor } from '../types/receipt.js';
+import type {
+  Receipt,
+  RedactionDerivation,
+  SignedBlock,
+  Signature,
+  TimestampAnchor,
+} from '../types/receipt.js';
 import type { Event } from '../types/event.js';
 import type { Policy, Decision } from '../types/policy.js';
 import type { MerkleFile, InclusionProofFile } from '../types/merkle.js';
@@ -21,17 +27,35 @@ export interface GeneratePackOptions {
   policy: Policy;
   policyYaml: string;
   decisions: Decision[];
-  keypair: Keypair;
+  keypair?: Keypair;
   additionalSigners?: Keypair[];
   signatureThreshold?: number;
+  unsigned?: boolean;
   timestampAnchor?: TimestampAnchor;
   previousEvents?: Event[];
   schemaVersion?: '0.1.0' | '1.0.0';
   openings?: Opening[];
+  derivation?: RedactionDerivation;
 }
 
 export function generatePack(opts: GeneratePackOptions): PackContents {
   const encoder = new TextEncoder();
+  const schemaVersion = opts.schemaVersion ?? '0.1.0';
+
+  if (opts.unsigned) {
+    if (opts.keypair || (opts.additionalSigners?.length ?? 0) > 0 || opts.signatureThreshold) {
+      throw new Error('Unsigned packs cannot include signing keys or signature thresholds');
+    }
+    if (
+      schemaVersion !== '1.0.0' ||
+      opts.derivation?.kind !== 'redaction_projection' ||
+      opts.derivation.signer_policy !== 'unsigned_projection'
+    ) {
+      throw new Error('Unsigned packs are only valid for schema 1.0.0 redaction projections');
+    }
+  } else if (!opts.keypair) {
+    throw new Error('A signing keypair is required unless unsigned projection mode is enabled');
+  }
 
   // Serialize events to JSONL (canonical JSON per line)
   const eventsJsonl = opts.events.map((e) => canonicalizeString(e)).join('\n') + '\n';
@@ -75,7 +99,7 @@ export function generatePack(opts: GeneratePackOptions): PackContents {
   const historyRef = createHistoryRef(opts.previousEvents ?? []);
 
   const signedBlock: SignedBlock = {
-    schema_version: opts.schemaVersion ?? '0.1.0',
+    schema_version: schemaVersion,
     run_id: opts.runId,
     created_at: opts.createdAt,
     producer: { name: opts.producerName, version: opts.producerVersion },
@@ -90,27 +114,33 @@ export function generatePack(opts: GeneratePackOptions): PackContents {
     artifact: { manifest_sha256: '' },
     ...(opts.timestampAnchor ? { timestamp_anchor: opts.timestampAnchor } : {}),
     ...(historyRef ? { history: historyRef } : {}),
+    ...(opts.derivation ? { derivation: opts.derivation } : {}),
   };
 
-  // Sign: canonical = RFC8785(signed_block), sig = Ed25519(privkey, canonical)
-  const canonical = canonicalize(signedBlock);
-  const signers = [opts.keypair, ...(opts.additionalSigners ?? [])];
-  const signatures: Signature[] = signers.map((signer) => {
-    const publicKey = toBase64(signer.publicKey);
-    const sig = sign(signer.privateKey, canonical);
-    return {
-      alg: 'Ed25519',
-      key_id: fingerprintPublicKeyB64(publicKey),
-      public_key: publicKey,
-      sig: toBase64(sig),
-      canonicalization: 'RFC8785',
-      hash: 'SHA-256',
-    };
-  });
+  const signatures: Signature[] = [];
+  if (!opts.unsigned) {
+    // Sign: canonical = RFC8785(signed_block), sig = Ed25519(privkey, canonical)
+    const canonical = canonicalize(signedBlock);
+    const signers = [opts.keypair!, ...(opts.additionalSigners ?? [])];
+    signatures.push(
+      ...signers.map((signer) => {
+        const publicKey = toBase64(signer.publicKey);
+        const sig = sign(signer.privateKey, canonical);
+        return {
+          alg: 'Ed25519' as const,
+          key_id: fingerprintPublicKeyB64(publicKey),
+          public_key: publicKey,
+          sig: toBase64(sig),
+          canonicalization: 'RFC8785' as const,
+          hash: 'SHA-256' as const,
+        };
+      }),
+    );
+  }
 
   const receipt: Receipt = {
     signed_block: signedBlock,
-    signature: signatures[0],
+    ...(signatures.length > 0 ? { signature: signatures[0] } : {}),
     ...(signatures.length > 1
       ? {
           signatures,
@@ -122,7 +152,7 @@ export function generatePack(opts: GeneratePackOptions): PackContents {
 
   // Build manifest (hashes receipt unidirectionally)
   const manifest: Manifest = {
-    schema_version: '0.1.0',
+    schema_version: schemaVersion,
     run_id: opts.runId,
     created_at: opts.createdAt,
     producer: { name: opts.producerName, version: opts.producerVersion },

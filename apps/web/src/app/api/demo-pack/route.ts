@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { generatePack, evaluateAll, keypairFromSeed, canonicalizeString } from '@proofpack/core';
+import {
+  generatePack,
+  evaluateAll,
+  keypairFromSeed,
+  canonicalizeString,
+  zipRawPackToBuffer,
+} from '@proofpack/core';
 import type { Event, Policy } from '@proofpack/core';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
-import { execSync } from 'node:child_process';
 
 const seed = new Uint8Array(32);
 seed[0] = 0xde;
@@ -195,43 +197,9 @@ function makeDemoEvents(): Event[] {
   ];
 }
 
-function zipPackToBuffer(
-  raw: Record<string, Uint8Array>,
-  inclusionProofs: Array<{ event_id: string }>,
-): Buffer {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'proofpack-demo-'));
-  fs.mkdirSync(path.join(tmpDir, 'events'), { recursive: true });
-  fs.mkdirSync(path.join(tmpDir, 'policy'), { recursive: true });
-  fs.mkdirSync(path.join(tmpDir, 'audit', 'inclusion_proofs'), { recursive: true });
-
-  fs.writeFileSync(path.join(tmpDir, 'manifest.json'), raw.manifest!);
-  fs.writeFileSync(path.join(tmpDir, 'receipt.json'), raw.receipt!);
-  fs.writeFileSync(path.join(tmpDir, 'events', 'events.jsonl'), raw.events!);
-  fs.writeFileSync(path.join(tmpDir, 'policy', 'policy.yml'), raw.policy!);
-  fs.writeFileSync(path.join(tmpDir, 'policy', 'decisions.jsonl'), raw.decisions!);
-  fs.writeFileSync(path.join(tmpDir, 'audit', 'merkle.json'), raw.merkle!);
-
-  for (const proof of inclusionProofs) {
-    const proofPath = path.join(tmpDir, 'audit', 'inclusion_proofs', `${proof.event_id}.json`);
-    fs.writeFileSync(proofPath, canonicalizeString(proof) + '\n');
-  }
-
-  // Zip the directory
-  const tmpZipDir = fs.mkdtempSync(path.join(os.tmpdir(), 'proofpack-out-'));
-  const tmpZip = path.join(tmpZipDir, 'output.zip');
-  try {
-    execSync(`cd "${tmpDir}" && zip -qr "${tmpZip}" .`, { stdio: 'pipe' });
-    const buffer = fs.readFileSync(tmpZip);
-    return buffer;
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-    fs.rmSync(tmpZipDir, { recursive: true, force: true });
-  }
-}
-
 let cachedDemoZip: Buffer | null = null;
 
-function getDemoPackZip(): Buffer {
+async function getDemoPackZip(): Promise<Buffer> {
   if (cachedDemoZip) return cachedDemoZip;
 
   const events = makeDemoEvents();
@@ -248,15 +216,16 @@ function getDemoPackZip(): Buffer {
     keypair: demoKeypair,
   });
 
-  cachedDemoZip = zipPackToBuffer(
+  cachedDemoZip = await zipRawPackToBuffer(
     pack.raw as unknown as Record<string, Uint8Array>,
     pack.inclusionProofs,
+    canonicalizeString,
   );
   return cachedDemoZip;
 }
 
 export async function GET() {
-  const zip = getDemoPackZip();
+  const zip = await getDemoPackZip();
   return new NextResponse(new Uint8Array(zip), {
     headers: {
       'Content-Type': 'application/zip',

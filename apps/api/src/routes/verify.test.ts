@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from '../server.js';
 import { buildDemoPack } from './demo.js';
@@ -6,7 +9,7 @@ import { canonicalizeString } from '@proofpack/core';
 import { zipPack } from '../utils/zip.js';
 import type { PackContents } from '@proofpack/core';
 
-function packToZipBuffer(pack: PackContents): Buffer {
+async function packToZipBuffer(pack: PackContents): Promise<Buffer> {
   return zipPack(
     pack.raw as unknown as Record<string, Uint8Array>,
     pack.inclusionProofs,
@@ -54,7 +57,7 @@ describe('POST /api/verify', () => {
 
   it('returns verified: true for valid demo pack', async () => {
     const pack = buildDemoPack();
-    const zip = packToZipBuffer(pack);
+    const zip = await packToZipBuffer(pack);
     const { body, contentType } = buildMultipartPayload(zip);
 
     const res = await app.inject({
@@ -87,7 +90,7 @@ describe('POST /api/verify', () => {
       receipt: tamperedReceipt,
     };
 
-    const zip = packToZipBuffer(tamperedPack);
+    const zip = await packToZipBuffer(tamperedPack);
     const { body, contentType } = buildMultipartPayload(zip);
 
     const res = await app.inject({
@@ -178,7 +181,7 @@ describe('POST /api/verify with strict profile', () => {
 
   it('applies strict verification profile checks', async () => {
     const pack = buildDemoPack();
-    const zip = packToZipBuffer(pack);
+    const zip = await packToZipBuffer(pack);
     const { body, contentType } = buildMultipartPayload(zip);
 
     const res = await app.inject({
@@ -195,5 +198,48 @@ describe('POST /api/verify with strict profile', () => {
     expect(json.checks.find((c: { name: string }) => c.name === 'timestamp.anchor')?.ok).toBe(
       false,
     );
+  });
+});
+
+describe('POST /api/verify trust-store errors', () => {
+  const previousTrustStorePath = process.env.PROOFPACK_TRUST_STORE_PATH;
+  let app: FastifyInstance;
+  let trustStorePath: string;
+
+  beforeAll(async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'proofpack-trust-test-'));
+    trustStorePath = path.join(dir, 'trust-store.json');
+    fs.writeFileSync(trustStorePath, '{"keys": []}', 'utf-8');
+    process.env.PROOFPACK_TRUST_STORE_PATH = trustStorePath;
+    app = await buildServer();
+  });
+
+  afterAll(async () => {
+    if (previousTrustStorePath === undefined) {
+      delete process.env.PROOFPACK_TRUST_STORE_PATH;
+    } else {
+      process.env.PROOFPACK_TRUST_STORE_PATH = previousTrustStorePath;
+    }
+    fs.rmSync(path.dirname(trustStorePath), { recursive: true, force: true });
+    await app.close();
+  });
+
+  it('returns a stable INVALID_TRUST_STORE payload', async () => {
+    const pack = buildDemoPack();
+    const zip = await packToZipBuffer(pack);
+    const { body, contentType } = buildMultipartPayload(zip);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+
+    expect(res.statusCode).toBe(400);
+    const json = res.json();
+    expect(json.ok).toBe(false);
+    expect(json.error.code).toBe('INVALID_TRUST_STORE');
+    expect(json.error.hint).toContain('PROOFPACK_TRUST_STORE_PATH');
   });
 });

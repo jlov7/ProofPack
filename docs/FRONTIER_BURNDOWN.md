@@ -1,8 +1,8 @@
 # Frontier Revamp Burn-Down
 
-This document records the public release-readiness pass for the ProofPack frontier revamp. Internal working notes live under `.codex/`, but this file is committed so contributors can see what was closed and what remains deliberately deferred.
+This document records the public release-readiness pass for the ProofPack frontier revamp. Internal working notes live under `.codex/`, but this file is committed so contributors can see what was closed.
 
-Status legend: `DONE`, `DEFERRED`.
+Status legend: `DONE`.
 
 ## Closed Items
 
@@ -36,7 +36,7 @@ Status legend: `DONE`, `DEFERRED`.
 28. `DONE` Remove deterministic hard-coded redaction signing seeds.
 29. `DONE` Add redaction derivation metadata linking public packs to source receipt hashes.
 30. `DONE` Add configured redaction-signer support.
-31. `DONE` Mark ephemeral projection signer policy in derived packs.
+31. `DONE` Support configured redaction signers and schema `1.0.0` unsigned projections.
 32. `DONE` Return redaction derivation headers from Next and Fastify routes.
 33. `DONE` Add private and public redaction verification tests.
 34. `DONE` Add progress-capable verification entrypoint.
@@ -66,24 +66,18 @@ Status legend: `DONE`, `DEFERRED`.
 58. `DONE` Refresh contributing guidance for current commands and test counts.
 59. `DONE` Add a dedicated web workbench README.
 60. `DONE` Add this public burn-down record.
+61. `DONE` Remove the unsigned-projection deferral with versioned receipt semantics and tests.
+62. `DONE` Add the Hyperframes explainer source and rendered asset.
 
 ## Final Evidence
 
-- `pnpm release:check`: passed.
+- `pnpm release:check`: passed with 227 tests, 1 skipped stress test, production build, Tailwind utility regression, 17 Playwright tests, and CLI sample-pack verification.
 - `pnpm policy:deps`: passed.
 - `pnpm audit --audit-level=moderate`: no known vulnerabilities found.
 - `pnpm stress:core`: passed 100,000-event Merkle stress run.
 - `pnpm sbom:generate`: passed and wrote `artifacts/sbom.cdx.json`.
 - `pnpm release:artifacts && pnpm release:attest && pnpm release:attest:verify && pnpm repro:check`: passed.
 - `pnpm changelog:status`: reports minor bumps for `@proofpack/core`, `@proofpack/api`, and `@proofpack/web`; patch bump for `@proofpack/cli`.
+- `npx hyperframes lint && npx hyperframes inspect --samples 12`: passed with no errors and no layout issues.
+- `npx hyperframes render --output renders/proofpack-explainer.mp4 --quality standard`: passed and rendered a 72-second 1920x1080 MP4 plus poster frame.
 - `git diff --check`: passed.
-
-## Deferred With Reason
-
-1. `DEFERRED` True unsigned public projections.
-
-   The current receipt schema requires at least one Ed25519 signature. This revamp removed hard-coded redaction seeds and records explicit projection signer policy, but truly unsigned projections should be introduced as a format-versioned schema change.
-
-2. `DEFERRED` Hyperframes explainer video.
-
-   The implementation plan placed the video after the code, docs, trust, and UI quality pass. The repository now has `docs/assets/` for the explainer inputs and outputs.

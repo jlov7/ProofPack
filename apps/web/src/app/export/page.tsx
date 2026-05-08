@@ -117,7 +117,7 @@ export default function ExportPage() {
               Redacted pack with payloads replaced by commitments. Safe to share publicly.
             </p>
             <p className="text-[10px] text-emerald-400 mt-1">
-              Derived with source receipt hash recorded in the signed block
+              Derived with source receipt hash recorded in the receipt block
             </p>
           </div>
           <button

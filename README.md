@@ -74,7 +74,7 @@ Open [http://localhost:3000](http://localhost:3000), select **Try demo pack**, t
         └── {event_id}.json
 ```
 
-Redacted public projections replace event payloads with `payload_commitment` and record derivation metadata in the signed block:
+Redacted public projections replace event payloads with `payload_commitment` and record derivation metadata in the receipt block:
 
 ```json
 {
@@ -82,9 +82,11 @@ Redacted public projections replace event payloads with `payload_commitment` and
   "source_run_id": "...",
   "source_receipt_sha256": "...",
   "payload_mode": "payload_commitments",
-  "signer_policy": "ephemeral_projection_signer"
+  "signer_policy": "unsigned_projection"
 }
 ```
+
+Unsigned projections are schema `1.0.0` derived artifacts. They are independently checkable for manifest, Merkle, policy, and disclosure integrity, but they do not claim to be a new producer attestation unless a configured redaction signer is supplied.
 
 ## Interfaces
 
@@ -131,17 +133,17 @@ API errors use a stable shape:
 
 ## Verification Checks
 
-| Check                  | What it proves                                                        |
-| ---------------------- | --------------------------------------------------------------------- |
-| `manifest.schema`      | Manifest and receipt match supported schema versions                  |
-| `receipt.signature`    | Signed block was produced by the stated Ed25519 key or threshold keys |
-| `receipt.trust`        | Optional signer trust-store requirements pass                         |
-| `merkle.root`          | Event bytes produce the signed Merkle root                            |
-| `merkle.inclusion_all` | Every event has a valid inclusion proof                               |
-| `policy.hash`          | Policy and decisions match the signed hashes                          |
-| `disclosure.openings`  | Optional openings reveal exactly the committed payloads               |
-| `timestamp.anchor`     | Optional timestamp evidence is valid and not before creation          |
-| `history.consistency`  | Optional append-only history reference is consistent                  |
+| Check                  | What it proves                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `manifest.schema`      | Manifest and receipt match supported schema versions                                                            |
+| `receipt.signature`    | Receipt block was signed by the stated Ed25519 key, or explicitly unsigned for a schema 1.0.0 public projection |
+| `receipt.trust`        | Optional signer trust-store requirements pass                                                                   |
+| `merkle.root`          | Event bytes produce the signed Merkle root                                                                      |
+| `merkle.inclusion_all` | Every event has a valid inclusion proof                                                                         |
+| `policy.hash`          | Policy and decisions match the signed hashes                                                                    |
+| `disclosure.openings`  | Optional openings reveal exactly the committed payloads                                                         |
+| `timestamp.anchor`     | Optional timestamp evidence is valid and not before creation                                                    |
+| `history.consistency`  | Optional append-only history reference is consistent                                                            |
 
 ## Architecture
 
@@ -202,6 +204,7 @@ Important packages:
 - [Architecture](./docs/ARCHITECTURE.md)
 - [Contributor Architecture Map](./docs/CONTRIBUTOR_ARCHITECTURE.md)
 - [Web Workbench README](./apps/web/README.md)
+- [Hyperframes Explainer](./docs/assets/hyperframes/proofpack-explainer/README.md)
 - [Pack v1 Spec](./docs/specs/proofpack-pack-v1-spec.md)
 - [Release Checklist](./docs/RELEASE_CHECKLIST.md)
 - [Publishing Notes](./docs/PUBLISHING.md)

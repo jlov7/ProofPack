@@ -1,6 +1,5 @@
 import { canonicalize } from '../crypto/canonical.js';
 import { sha256Hex } from '../crypto/hash.js';
-import { keypairFromSeed } from '../crypto/ed25519.js';
 import { generatePack } from './generator.js';
 import type { Event } from '../types/event.js';
 import type { Keypair } from '../crypto/ed25519.js';
@@ -72,11 +71,6 @@ export function redactPack(pack: PackContents): { publicPack: PackContents; open
   return { publicPack, openings };
 }
 
-function randomRedactionKeypair(): Keypair {
-  const seed = crypto.getRandomValues(new Uint8Array(32));
-  return keypairFromSeed(seed);
-}
-
 export interface CreateRedactedProjectionOptions {
   keypair?: Keypair;
   signerPolicy?: RedactionDerivation['signer_policy'];
@@ -97,7 +91,7 @@ export function createRedactedProjectionPack(
   const { publicPack, openings } = redactPack(sourcePack);
   const signerPolicy =
     options.signerPolicy ??
-    (options.keypair ? 'configured_redaction_signer' : 'ephemeral_projection_signer');
+    (options.keypair ? 'configured_redaction_signer' : 'unsigned_projection');
   const derivation: RedactionDerivation = {
     kind: 'redaction_projection',
     source_run_id: sourcePack.manifest.run_id,
@@ -115,7 +109,9 @@ export function createRedactedProjectionPack(
     policy: options.policy ?? sourcePack.policy,
     policyYaml: new TextDecoder().decode(sourcePack.raw.policy),
     decisions: options.decisions ?? sourcePack.decisions,
-    keypair: options.keypair ?? randomRedactionKeypair(),
+    keypair: options.keypair,
+    unsigned: signerPolicy === 'unsigned_projection',
+    schemaVersion: signerPolicy === 'unsigned_projection' ? '1.0.0' : undefined,
     openings,
     derivation,
   });

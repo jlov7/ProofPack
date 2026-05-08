@@ -1,0 +1,327 @@
+:root {
+  --paper: oklch(0.975 0.006 95);
+  --ink: oklch(0.165 0.014 250);
+  --carbon: oklch(0.205 0.018 250);
+  --panel: oklch(0.245 0.018 250);
+  --line: oklch(0.38 0.018 250);
+  --signal: oklch(0.74 0.16 158);
+  --amber: oklch(0.79 0.15 78);
+  --danger: oklch(0.66 0.18 28);
+  --blueprint: oklch(0.68 0.11 232);
+}
+
+html,
+body {
+  width: 1920px;
+  height: 1080px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--carbon);
+  color: var(--paper);
+  font-family:
+    Geist,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+#proofpack-explainer {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 80% 10%, rgba(98, 184, 214, 0.1), transparent 34%), var(--carbon);
+  background-size:
+    80px 80px,
+    80px 80px,
+    100% 100%,
+    100% 100%;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 92px 112px 84px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 42px;
+  opacity: 0;
+}
+
+.eyebrow {
+  color: var(--signal);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: 0;
+  line-height: 0.95;
+}
+
+h1 {
+  max-width: 1320px;
+  font-size: 118px;
+  font-weight: 760;
+}
+
+h2 {
+  max-width: 1180px;
+  font-size: 92px;
+  font-weight: 720;
+}
+
+p {
+  margin: 0;
+  color: oklch(0.82 0.018 250);
+  font-size: 34px;
+  line-height: 1.32;
+}
+
+.mono {
+  font-family: 'Geist Mono', 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+.caption {
+  min-height: 84px;
+  border-top: 1px solid color-mix(in oklch, var(--line), transparent 16%);
+  padding-top: 28px;
+  color: oklch(0.78 0.018 250);
+  font-size: 31px;
+}
+
+.workspace {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 34px;
+  min-height: 0;
+}
+
+.panel {
+  border: 1px solid color-mix(in oklch, var(--line), transparent 14%);
+  border-radius: 20px;
+  background: color-mix(in oklch, var(--panel), transparent 3%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 30px;
+  overflow: hidden;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  color: var(--paper);
+  font-size: 24px;
+  font-weight: 720;
+}
+
+.chip {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 18px;
+  font-weight: 740;
+}
+
+.chip.signal {
+  color: var(--signal);
+}
+
+.chip.danger {
+  color: var(--danger);
+}
+
+.chip.amber {
+  color: var(--amber);
+}
+
+.event-list {
+  display: grid;
+  gap: 13px;
+}
+
+.event {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid color-mix(in oklch, var(--line), transparent 34%);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 17px 18px;
+  font-size: 22px;
+}
+
+.event .id {
+  color: var(--blueprint);
+}
+
+.event .decision {
+  justify-self: end;
+  color: var(--signal);
+  font-weight: 720;
+}
+
+.event.deny .decision,
+.event.fail .decision {
+  color: var(--danger);
+}
+
+.event.hold .decision {
+  color: var(--amber);
+}
+
+.receipt {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.receipt-row {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 18px;
+  color: oklch(0.82 0.018 250);
+  font-size: 23px;
+}
+
+.receipt-row strong {
+  color: var(--paper);
+}
+
+.hash {
+  color: var(--blueprint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.check {
+  border: 1px solid color-mix(in oklch, var(--line), transparent 22%);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 22px;
+  font-size: 23px;
+}
+
+.check .mark {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--signal);
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.check.fail .mark {
+  color: var(--danger);
+}
+
+.flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.flow-step {
+  border: 1px solid color-mix(in oklch, var(--line), transparent 18%);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 22px;
+  font-size: 22px;
+}
+
+.flow-step .num {
+  display: block;
+  margin-bottom: 24px;
+  color: var(--signal);
+  font-size: 34px;
+  font-weight: 780;
+}
+
+.commitments {
+  display: grid;
+  gap: 14px;
+}
+
+.commitment {
+  border: 1px solid color-mix(in oklch, var(--line), transparent 20%);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.commitment .label {
+  margin-bottom: 8px;
+  color: var(--paper);
+  font-size: 22px;
+  font-weight: 740;
+}
+
+.commitment .value {
+  color: var(--blueprint);
+  font-size: 22px;
+}
+
+.final-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+.final-card {
+  min-height: 250px;
+  border: 1px solid color-mix(in oklch, var(--line), transparent 20%);
+  border-radius: 22px;
+  background: color-mix(in oklch, var(--panel), transparent 4%);
+  padding: 28px;
+}
+
+.final-card strong {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--paper);
+  font-size: 30px;
+}
+
+.final-card span {
+  color: oklch(0.8 0.018 250);
+  font-size: 24px;
+  line-height: 1.34;
+}
+
+.tamper-line {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--signal), var(--amber), var(--danger));
+  transform-origin: left center;
+}
+
+.watermark {
+  position: absolute;
+  right: 112px;
+  bottom: 42px;
+  color: color-mix(in oklch, var(--paper), transparent 58%);
+  font-size: 20px;
+}

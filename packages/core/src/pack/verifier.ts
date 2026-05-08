@@ -94,6 +94,14 @@ function getReceiptSignatures(pack: PackContents): Signature[] {
   throw new Error('Receipt contains no signatures');
 }
 
+function isUnsignedProjection(pack: PackContents): boolean {
+  return (
+    pack.receipt.signed_block.schema_version === '1.0.0' &&
+    pack.receipt.signed_block.derivation?.kind === 'redaction_projection' &&
+    pack.receipt.signed_block.derivation.signer_policy === 'unsigned_projection'
+  );
+}
+
 export function verifyPack(
   pack: PackContents,
   options: VerifyPackOptions = {},
@@ -119,6 +127,18 @@ export function verifyPack(
   // Check 2: receipt.signature — verify Ed25519 over canonical signed_block
   checks.push(
     check('receipt.signature', () => {
+      if (isUnsignedProjection(pack)) {
+        return {
+          signature_count: 0,
+          valid_signatures: 0,
+          threshold: 0,
+          public_keys: [],
+          unsigned_projection: true,
+          signer_policy: 'unsigned_projection',
+          source_receipt_sha256: pack.receipt.signed_block.derivation?.source_receipt_sha256,
+        };
+      }
+
       const canonicalBytes = canonicalize(pack.receipt.signed_block);
       const signatures = getReceiptSignatures(pack);
       const threshold = pack.receipt.threshold ?? signatures.length;
@@ -158,6 +178,10 @@ export function verifyPack(
       check('receipt.trust', () => {
         if (!options.trustStore) {
           throw new Error('No trust store provided');
+        }
+
+        if (isUnsignedProjection(pack)) {
+          throw new Error('Unsigned projection has no signing key to evaluate');
         }
 
         const signatures = getReceiptSignatures(pack);

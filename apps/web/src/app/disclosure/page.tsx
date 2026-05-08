@@ -71,13 +71,13 @@ export default function DisclosurePage() {
           <p>
             <strong className="text-[var(--text-secondary)]">2. Redaction:</strong> The public pack
             replaces payloads with their commitment hashes and records the source receipt hash in
-            the derived signed block.
+            the derived receipt block.
           </p>
           <p>
-            <strong className="text-[var(--text-secondary)]">3. Signing:</strong> A configured
-            redaction signer can be supplied with <code>PROOFPACK_REDACTION_SEED_B64</code>;
-            otherwise the public projection is signed by an ephemeral projection key and should be
-            treated as derived evidence, not the original producer attestation.
+            <strong className="text-[var(--text-secondary)]">3. Projection:</strong> If no redaction
+            signer is configured, the public pack is an unsigned projection with explicit derivation
+            metadata. Set <code>PROOFPACK_REDACTION_SEED_B64</code> to produce a signed redaction
+            artifact.
           </p>
           <p>
             <strong className="text-[var(--text-secondary)]">4. Opening:</strong> To reveal a

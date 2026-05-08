@@ -66,6 +66,7 @@ Required fields:
 - `policy.decisions_sha256`
 - `artifact.manifest_sha256`
 
+Source receipts and signed projections MUST include `receipt.signature` or `receipt.signatures`.
 `receipt.signature` MUST include:
 
 - `alg`: `"Ed25519"`
@@ -73,6 +74,15 @@ Required fields:
 - `sig`: base64
 - `canonicalization`: `"RFC8785"`
 - `hash`: `"SHA-256"`
+
+Unsigned redaction projections MAY omit `receipt.signature` and `receipt.signatures` only when all of the following are true:
+
+- `receipt.signed_block.schema_version` is `"1.0.0"`
+- `receipt.signed_block.derivation.kind` is `"redaction_projection"`
+- `receipt.signed_block.derivation.signer_policy` is `"unsigned_projection"`
+- `receipt.signed_block.derivation.source_receipt_sha256` links to the original source receipt
+
+Unsigned projections MUST NOT be treated as producer attestations. They are integrity-checkable derived artifacts.
 
 ### 4.3 events/events.jsonl
 
@@ -93,7 +103,7 @@ Required fields:
 ## 5. Cryptographic Requirements
 
 1. `signed_block` MUST be canonicalized with RFC8785 before signing/verifying.
-2. Signature verification MUST use Ed25519 with the provided `public_key`.
+2. Signature verification MUST use Ed25519 with the provided `public_key`, except for schema `1.0.0` unsigned redaction projections that explicitly declare `signer_policy: "unsigned_projection"`.
 3. Merkle tree construction MUST follow RFC6962 domain separation semantics.
 4. Policy and decisions hashes MUST match receipt commitments.
 5. Disclosure openings (if present) MUST verify against payload commitments.

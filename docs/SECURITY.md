@@ -39,6 +39,7 @@ What ProofPack does **not** claim:
 - It does not claim that the agent's actions were beneficial or correct — only that the log faithfully represents what the agent did
 - It does not claim that the policy was appropriate for the context — only that it was applied consistently
 - It does not provide real-time enforcement — it provides post-hoc auditability
+- Unsigned public redaction projections do not claim new producer authority. They prove derived-pack integrity and link back to the original receipt hash, while configured redaction signers can add an explicit derived-artifact attestation.
 
 ---
 

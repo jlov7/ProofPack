@@ -134,7 +134,7 @@ export default function VerifyPage() {
         <div className="mt-8 grid grid-cols-1 gap-3 border-t border-[var(--border-soft)] pt-5 text-xs text-[var(--text-muted)] sm:grid-cols-3">
           <p>
             <span className="block font-mono text-lg text-[var(--text-primary)]">RFC8785</span>
-            canonical signed block
+            canonical receipt block
           </p>
           <p>
             <span className="block font-mono text-lg text-[var(--text-primary)]">RFC6962</span>
@@ -142,7 +142,7 @@ export default function VerifyPage() {
           </p>
           <p>
             <span className="block font-mono text-lg text-[var(--text-primary)]">Ed25519</span>
-            single or threshold signatures
+            signatures or unsigned projections
           </p>
         </div>
       </section>

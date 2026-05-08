@@ -189,9 +189,47 @@ describe('ReceiptSchema', () => {
     expect(ReceiptSchema.safeParse(input).success).toBe(false);
   });
 
-  it('rejects receipt missing signature', () => {
+  it('rejects source receipt missing signature', () => {
     const { signature: _, ...rest } = validReceipt();
     expect(ReceiptSchema.safeParse(rest).success).toBe(false);
+  });
+
+  it('accepts schema 1.0.0 unsigned redaction projection receipts', () => {
+    const { signature: _, ...rest } = validReceipt();
+    const value = {
+      ...rest,
+      signed_block: {
+        ...rest.signed_block,
+        schema_version: '1.0.0',
+        derivation: {
+          kind: 'redaction_projection',
+          source_run_id: VALID_UUID,
+          source_receipt_sha256: 'a'.repeat(64),
+          payload_mode: 'payload_commitments',
+          signer_policy: 'unsigned_projection',
+        },
+      },
+    };
+    expect(ReceiptSchema.safeParse(value).success).toBe(true);
+  });
+
+  it('rejects unsigned redaction projections before schema 1.0.0', () => {
+    const { signature: _, ...rest } = validReceipt();
+    const value = {
+      ...rest,
+      signed_block: {
+        ...rest.signed_block,
+        schema_version: '0.1.0',
+        derivation: {
+          kind: 'redaction_projection',
+          source_run_id: VALID_UUID,
+          source_receipt_sha256: 'a'.repeat(64),
+          payload_mode: 'payload_commitments',
+          signer_policy: 'unsigned_projection',
+        },
+      },
+    };
+    expect(ReceiptSchema.safeParse(value).success).toBe(false);
   });
 
   it('accepts receipt using signatures array + threshold', () => {

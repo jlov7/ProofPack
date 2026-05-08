@@ -87,7 +87,7 @@ export default function ReportPage() {
                   <dd className="font-mono text-[var(--text-primary)]">
                     {(signatureCheck?.details.threshold as number | undefined) ??
                       report.receipt?.threshold ??
-                      1}
+                      (signatures > 0 ? 1 : 0)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">

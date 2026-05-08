@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const keypair = configuredRedactionKeypair();
     const projection = createRedactedProjectionPack(pack, {
       keypair,
-      signerPolicy: keypair ? 'configured_redaction_signer' : 'ephemeral_projection_signer',
+      signerPolicy: keypair ? 'configured_redaction_signer' : 'unsigned_projection',
     });
 
     const zipBuffer = await zipRawPackToBuffer(

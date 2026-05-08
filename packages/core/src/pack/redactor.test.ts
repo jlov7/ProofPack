@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeCommitment, redactPack } from './redactor.js';
+import { computeCommitment, createRedactedProjectionPack, redactPack } from './redactor.js';
 import { generatePack } from './generator.js';
 import { evaluateAll } from '../policy/engine.js';
 import { keypairFromSeed } from '../crypto/ed25519.js';
@@ -150,5 +150,30 @@ describe('redactPack', () => {
       const commitment = computeCommitment(opening.payload, opening.salt_b64);
       expect(commitment).toBe(event!.payload_commitment);
     }
+  });
+
+  it('creates a redacted projection with source receipt derivation metadata', () => {
+    const events = makeEvents();
+    const decisions = evaluateAll(events, testPolicy);
+    const pack = generatePack({
+      runId: 'a1b2c3d4-e5f6-4000-a000-000000000001',
+      createdAt: '2026-01-15T10:00:00.000Z',
+      producerName: 'test',
+      producerVersion: '0.1.0',
+      events,
+      policy: testPolicy,
+      policyYaml,
+      decisions,
+      keypair,
+    });
+
+    const projection = createRedactedProjectionPack(pack, { keypair });
+
+    expect(projection.pack.receipt.signed_block.derivation).toEqual(projection.derivation);
+    expect(projection.derivation.kind).toBe('redaction_projection');
+    expect(projection.derivation.source_run_id).toBe(pack.manifest.run_id);
+    expect(projection.derivation.source_receipt_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(projection.pack.events[0]?.payload).toBeUndefined();
+    expect(projection.pack.events[0]?.payload_commitment).toBeDefined();
   });
 });

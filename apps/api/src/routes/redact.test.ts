@@ -6,7 +6,7 @@ import { canonicalizeString, verifyPack, loadPackFromDirectory } from '@proofpac
 import { zipPack, unzipToTemp, findPackRoot, cleanupTemp } from '../utils/zip.js';
 import type { PackContents } from '@proofpack/core';
 
-function packToZipBuffer(pack: PackContents): Buffer {
+async function packToZipBuffer(pack: PackContents): Promise<Buffer> {
   return zipPack(
     pack.raw as unknown as Record<string, Uint8Array>,
     pack.inclusionProofs,
@@ -53,7 +53,7 @@ describe('POST /api/redact', () => {
 
   it('returns a zip of the redacted public pack', async () => {
     const pack = buildDemoPack();
-    const zip = packToZipBuffer(pack);
+    const zip = await packToZipBuffer(pack);
     const { body, contentType } = buildMultipartPayload(zip);
 
     const res = await app.inject({
@@ -65,10 +65,12 @@ describe('POST /api/redact', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toBe('application/zip');
+    expect(res.headers['x-proofpack-redaction-derivation']).toMatch(/^[a-f0-9]{64}$/);
+    expect(res.headers['x-proofpack-redaction-signer-policy']).toBe('ephemeral_projection_signer');
 
     // Extract and verify the public pack
     const resultBuffer = Buffer.from(res.rawPayload);
-    const tmpDir = unzipToTemp(resultBuffer);
+    const tmpDir = await unzipToTemp(resultBuffer);
 
     try {
       const packRoot = findPackRoot(tmpDir);

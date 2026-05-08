@@ -6,7 +6,13 @@ import { createHistoryRef } from './history.js';
 import { fingerprintPublicKeyB64 } from './trust.js';
 import type { Keypair } from '../crypto/ed25519.js';
 import type { Manifest } from '../types/manifest.js';
-import type { Receipt, SignedBlock, Signature, TimestampAnchor } from '../types/receipt.js';
+import type {
+  Receipt,
+  RedactionDerivation,
+  SignedBlock,
+  Signature,
+  TimestampAnchor,
+} from '../types/receipt.js';
 import type { Event } from '../types/event.js';
 import type { Policy, Decision } from '../types/policy.js';
 import type { MerkleFile, InclusionProofFile } from '../types/merkle.js';
@@ -28,6 +34,7 @@ export interface GeneratePackOptions {
   previousEvents?: Event[];
   schemaVersion?: '0.1.0' | '1.0.0';
   openings?: Opening[];
+  derivation?: RedactionDerivation;
 }
 
 export function generatePack(opts: GeneratePackOptions): PackContents {
@@ -90,6 +97,7 @@ export function generatePack(opts: GeneratePackOptions): PackContents {
     artifact: { manifest_sha256: '' },
     ...(opts.timestampAnchor ? { timestamp_anchor: opts.timestampAnchor } : {}),
     ...(historyRef ? { history: historyRef } : {}),
+    ...(opts.derivation ? { derivation: opts.derivation } : {}),
   };
 
   // Sign: canonical = RFC8785(signed_block), sig = Ed25519(privkey, canonical)

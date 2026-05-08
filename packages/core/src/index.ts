@@ -9,6 +9,7 @@ export * from './pack/verifier.js';
 export * from './pack/loader.js';
 export * from './pack/diff.js';
 export * from './pack/redactor.js';
+export * from './pack/archive.js';
 export * from './pack/disclosure.js';
 export * from './pack/trust.js';
 export * from './pack/history.js';

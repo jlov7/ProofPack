@@ -1,52 +1,36 @@
 import { NextResponse } from 'next/server';
-import { loadPackFromDirectory, verifyPack } from '@proofpack/core';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
-import { execSync } from 'node:child_process';
+import {
+  cleanupExtractedPack,
+  extractPackZipToTemp,
+  loadPackFromDirectory,
+  packArchiveErrorHint,
+  PackArchiveError,
+  parseTrustStoreJson,
+  TrustStoreParseError,
+  verifyPack,
+  type VerifyPackOptions,
+} from '@proofpack/core';
 
-function unzipBuffer(zipBuffer: Buffer): string {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'proofpack-web-'));
-  const zipPath = path.join(tmpDir, 'upload.zip');
-  const extractDir = path.join(tmpDir, 'extracted');
-  fs.mkdirSync(extractDir);
-  fs.writeFileSync(zipPath, zipBuffer);
-
-  // Zip-slip protection
-  const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf-8' });
-  for (const line of listing.split('\n')) {
-    const match = /\d{2}:\d{2}\s+(.+)$/.exec(line);
-    if (!match?.[1]) continue;
-    const entryPath = match[1].trim();
-    if (!entryPath || entryPath === 'Name' || entryPath.startsWith('---')) continue;
-    const resolved = path.resolve(extractDir, entryPath);
-    if (!resolved.startsWith(extractDir + path.sep) && resolved !== extractDir) {
-      fs.rmSync(tmpDir, { recursive: true });
-      return NextResponse.json(
-        { ok: false, error: { code: 'ZIP_SLIP', message: 'Malicious zip path detected' } },
-        { status: 400 },
-      ) as never;
-    }
-  }
-
-  execSync(`unzip -qo "${zipPath}" -d "${extractDir}"`);
-  fs.unlinkSync(zipPath);
-  return extractDir;
+function parseProfile(value: FormDataEntryValue | null): VerifyPackOptions['profile'] {
+  if (value === 'strict' || value === 'permissive' || value === 'standard') return value;
+  return undefined;
 }
 
-function findPackRoot(dir: string): string {
-  const entries = fs.readdirSync(dir);
-  if (entries.includes('manifest.json')) return dir;
-  const dirs = entries.filter((e) => fs.statSync(path.join(dir, e)).isDirectory());
-  if (dirs.length === 1) {
-    const sub = path.join(dir, dirs[0]!);
-    if (fs.existsSync(path.join(sub, 'manifest.json'))) return sub;
-  }
-  throw new Error('Cannot find manifest.json in uploaded zip');
+function isPackArchiveError(err: unknown): err is PackArchiveError {
+  return (
+    err instanceof PackArchiveError || (err instanceof Error && err.name === 'PackArchiveError')
+  );
+}
+
+function isTrustStoreParseError(err: unknown): err is TrustStoreParseError {
+  return (
+    err instanceof TrustStoreParseError ||
+    (err instanceof Error && err.name === 'TrustStoreParseError')
+  );
 }
 
 export async function POST(request: Request) {
-  let tmpDir: string | null = null;
+  let extracted: Awaited<ReturnType<typeof extractPackZipToTemp>> | undefined;
 
   try {
     const formData = await request.formData();
@@ -65,18 +49,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const extractDir = unzipBuffer(buffer);
-    tmpDir = path.dirname(extractDir);
+    const trustStoreRaw = formData.get('trustStore');
+    const trustStore =
+      typeof trustStoreRaw === 'string' && trustStoreRaw.trim().length > 0
+        ? parseTrustStoreJson(trustStoreRaw)
+        : undefined;
 
-    const packRoot = findPackRoot(extractDir);
-    const pack = loadPackFromDirectory(packRoot);
-    const report = verifyPack(pack);
+    extracted = await extractPackZipToTemp(Buffer.from(await file.arrayBuffer()));
+    const pack = loadPackFromDirectory(extracted.packRoot);
+    const report = verifyPack(pack, {
+      profile: parseProfile(formData.get('profile')),
+      trustStore,
+      requireTrustedKey: formData.get('requireTrustedKey') === 'true',
+      requireTimestampAnchor: formData.get('requireTimestampAnchor') === 'true',
+    });
 
     return NextResponse.json({
       ok: true,
       summary: {
         verified: report.verified,
+        profile: report.profile,
         run_id: report.run_id,
         created_at: report.created_at,
         producer: report.producer,
@@ -97,8 +89,38 @@ export async function POST(request: Request) {
         severity: d.severity,
         reason: d.reason,
       })),
+      receipt: pack.receipt,
+      merkle: pack.merkleFile,
     });
   } catch (err) {
+    if (isPackArchiveError(err)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: {
+            code: err.code === 'INVALID_ZIP' ? 'INVALID_PACK' : err.code,
+            message: err.message,
+            hint: packArchiveErrorHint(err.code),
+          },
+        },
+        { status: err.code === 'PAYLOAD_TOO_LARGE' ? 413 : 400 },
+      );
+    }
+
+    if (isTrustStoreParseError(err)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: {
+            code: err.code,
+            message: err.message,
+            hint: 'Provide trust-store JSON shaped like {"keys":[{"key_id":"...","public_key":"...","status":"active"}]}.',
+          },
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
       {
         ok: false,
@@ -107,12 +129,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   } finally {
-    if (tmpDir) {
-      try {
-        fs.rmSync(tmpDir, { recursive: true });
-      } catch {
-        /* ignore */
-      }
-    }
+    if (extracted) cleanupExtractedPack(extracted);
   }
 }

@@ -3,17 +3,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { canonicalizeString } from '@proofpack/core';
 import { buildDemoPack } from '../routes/demo.js';
-import { cleanupTemp, findPackRoot, unzipToTemp, zipPack, zipDirectory } from './zip.js';
+import { cleanupTemp, findPackRoot, unzipToTemp, zipPack } from './zip.js';
 
 describe('zip utilities', () => {
-  it('round-trips a valid pack zip and discovers root directory', () => {
+  it('round-trips a valid pack zip and discovers root directory', async () => {
     const pack = buildDemoPack();
-    const zip = zipPack(
+    const zip = await zipPack(
       pack.raw as unknown as Record<string, Uint8Array>,
       pack.inclusionProofs,
       canonicalizeString,
     );
-    const extracted = unzipToTemp(zip);
+    const extracted = await unzipToTemp(zip);
 
     try {
       const root = findPackRoot(extracted);
@@ -24,14 +24,14 @@ describe('zip utilities', () => {
     }
   });
 
-  it('applies hardened temporary directory permissions and cleanup', () => {
+  it('applies hardened temporary directory permissions and cleanup', async () => {
     const pack = buildDemoPack();
-    const zip = zipPack(
+    const zip = await zipPack(
       pack.raw as unknown as Record<string, Uint8Array>,
       pack.inclusionProofs,
       canonicalizeString,
     );
-    const extracted = unzipToTemp(zip);
+    const extracted = await unzipToTemp(zip);
 
     const extractedStats = fs.statSync(extracted);
     const mode = extractedStats.mode & 0o777;
@@ -41,30 +41,11 @@ describe('zip utilities', () => {
     expect(fs.existsSync(extracted)).toBe(false);
   });
 
-  it('throws for malformed zip bytes', () => {
-    expect(() => unzipToTemp(Buffer.from('not-a-zip'))).toThrow();
+  it('throws for malformed zip bytes', async () => {
+    await expect(unzipToTemp(Buffer.from('not-a-zip'))).rejects.toThrow();
   });
 
   it('cleanupTemp is safe on missing directories', () => {
     expect(() => cleanupTemp('/tmp/definitely-does-not-exist-proofpack')).not.toThrow();
-  });
-
-  it('zipDirectory creates a zip artifact from a directory', () => {
-    const pack = buildDemoPack();
-    const extracted = unzipToTemp(
-      zipPack(
-        pack.raw as unknown as Record<string, Uint8Array>,
-        pack.inclusionProofs,
-        canonicalizeString,
-      ),
-    );
-
-    try {
-      const root = findPackRoot(extracted);
-      const zip = zipDirectory(root);
-      expect(zip.byteLength).toBeGreaterThan(1024);
-    } finally {
-      cleanupTemp(extracted);
-    }
   });
 });

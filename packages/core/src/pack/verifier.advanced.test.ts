@@ -179,9 +179,26 @@ describe('verifyPack advanced features', () => {
     const pack = buildPack();
     const report = verifyPack(pack, { profile: 'strict' });
     expect(report.verified).toBe(false);
+    expect(report.checks.find((c) => c.name === 'events.timestamp_order')?.ok).toBe(true);
     expect(report.checks.find((c) => c.name === 'receipt.trust')?.ok).toBe(false);
     expect(report.checks.find((c) => c.name === 'timestamp.anchor')?.ok).toBe(false);
     expect(report.checks.find((c) => c.name === 'history.consistency')?.ok).toBe(false);
+  });
+
+  it('strict profile rejects non-monotonic event timestamps', () => {
+    const events = makeEvents(3);
+    events[2] = { ...events[2]!, ts: '2026-01-15T09:59:59.000Z' };
+    const pack = buildPack({
+      events,
+      decisions: evaluateAll(events, basePolicy),
+    });
+
+    const report = verifyPack(pack, { profile: 'strict' });
+
+    expect(report.verified).toBe(false);
+    const orderingCheck = report.checks.find((c) => c.name === 'events.timestamp_order');
+    expect(orderingCheck?.ok).toBe(false);
+    expect(orderingCheck?.hint).toContain('Sort events');
   });
 
   it('permissive profile allows non-critical check failures', () => {

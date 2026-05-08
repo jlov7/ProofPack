@@ -53,6 +53,13 @@ export interface VerifyPackOptions {
   requireTimestampAnchor?: boolean;
 }
 
+export interface VerificationProgress {
+  phase: 'manifest' | 'signature' | 'merkle' | 'policy' | 'disclosure' | 'strictness' | 'complete';
+  completed: number;
+  total: number;
+  message: string;
+}
+
 export interface VerificationReport {
   verified: boolean;
   profile: VerificationProfile;

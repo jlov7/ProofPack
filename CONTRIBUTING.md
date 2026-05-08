@@ -1,298 +1,159 @@
 # Contributing to ProofPack
 
-Thank you for your interest in ProofPack. This guide covers everything you need to make a high-quality contribution.
+ProofPack is a developer-first open-source security workbench for portable cryptographic receipts from AI agent runs. Contributions are welcome, but changes that touch the pack format, trust model, verifier, redaction, or archive handling need extra care.
 
----
+## Start Here
 
-## Table of Contents
+Before opening a non-trivial PR:
 
-- [Before You Start](#before-you-start)
-- [Development Environment](#development-environment)
-- [Project Structure](#project-structure)
-- [Making Changes](#making-changes)
-- [Testing Your Work](#testing-your-work)
-- [Submitting a Pull Request](#submitting-a-pull-request)
-- [What's In Scope](#whats-in-scope)
-- [Code Standards](#code-standards)
-- [Commit Messages](#commit-messages)
+1. Read [README.md](./README.md) for the product contract.
+2. Read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for package boundaries.
+3. Read [docs/SECURITY.md](./docs/SECURITY.md) and [docs/security/threat-model-2026-03.md](./docs/security/threat-model-2026-03.md) before touching cryptography, policy, archives, redaction, or trust stores.
+4. Open an issue first for features, format changes, architecture changes, and anything that changes verifier behavior.
 
----
-
-## Before You Start
-
-ProofPack is a focused research project with tight scope boundaries. Before investing time in a contribution, please:
-
-1. **Open an issue first** for anything beyond a straightforward bug fix. Describe what you want to change and why. This prevents wasted effort on changes that won't be merged.
-2. **Read the architecture doc** — [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — so your changes fit the design.
-3. **Read the security doc** — [docs/SECURITY.md](./docs/SECURITY.md) — if your change touches cryptography, policy, or the pack format.
-
----
+Small documentation fixes and focused bug fixes can go straight to a PR.
 
 ## Development Environment
 
-### Prerequisites
-
-| Tool    | Version    | Notes                                                                            |
-| ------- | ---------- | -------------------------------------------------------------------------------- |
-| Node.js | ≥ 20       | Use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm) |
-| pnpm    | ≥ 9        | Install with `npm i -g pnpm`                                                     |
-| Git     | Any recent |                                                                                  |
-
-### Setup
+| Tool    | Version | Notes                         |
+| ------- | ------- | ----------------------------- |
+| Node.js | >= 20   | Match `package.json#engines`  |
+| pnpm    | 11.x    | Workspace package manager     |
+| Git     | recent  | Required for release metadata |
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-username/proofpack
-cd proofpack
-
-# Install all workspace dependencies
+git clone https://github.com/jlov7/ProofPack.git
+cd ProofPack
 pnpm install
-
-# Start the full development stack
-pnpm dev
-# → API on http://localhost:3001
-# → Web UI on http://localhost:3000
-```
-
-### Development scripts
-
-```bash
-pnpm dev          # Concurrent: API server + Next.js dev server
-pnpm test         # Run all 175 unit tests (Vitest)
-pnpm e2e          # Run all 12 E2E tests (Playwright, auto-starts dev server)
-pnpm build        # Build core + cli + api + web
-pnpm ci           # check + test + build + e2e
-pnpm check        # TypeScript strict + ESLint + Prettier — must be clean before PR
-pnpm demo         # Generate fresh demo pack → packages/cli/examples/sample_runs/latest.proofpack/
-pnpm verify       # Verify the demo pack (should exit 0)
-```
-
----
-
-## Project Structure
-
-```
-proofpack/
-├── packages/
-│   ├── core/            # All cryptography, pack format, verifier, policy engine
-│   └── cli/             # Commander CLI: demo + verify subcommands
-├── apps/
-│   ├── api/             # Fastify REST API (local dev and testing)
-│   └── web/             # Next.js 15 App Router UI + Next.js API routes (production)
-└── tests/
-    └── e2e/             # Playwright end-to-end tests
-```
-
-**Dependency rule**: `core` has no dependencies on `cli`, `api`, or `web`. The dependency graph flows one way: `web` / `api` / `cli` → `core`.
-
----
-
-## Making Changes
-
-### Branch naming
-
-```
-feat/short-description
-fix/what-was-broken
-test/what-is-being-tested
-docs/what-is-documented
-refactor/what-was-changed
-```
-
-### Guidelines
-
-- **One logical change per branch.** Don't bundle unrelated fixes.
-- **Read before writing.** Understand the existing code before proposing changes to it.
-- **Don't over-engineer.** The right amount of code is the minimum needed for the task. Three similar lines > a premature abstraction.
-- **Don't touch what you don't need to.** If you're fixing a bug in `verifier.ts`, don't refactor `loader.ts` in the same PR.
-- **No speculative features.** If it wasn't requested in the issue, don't add it.
-
----
-
-## Testing Your Work
-
-Every change must maintain the following invariants:
-
-### Unit tests (must stay at 175 passing — add new ones for new behavior)
-
-```bash
-pnpm test
-```
-
-If you add a new function, add a unit test for it. If you fix a bug, add a regression test that fails before your fix and passes after.
-
-### Known-answer vectors
-
-The crypto functions in `packages/core/src/crypto/` have tests with known-answer vectors — specific inputs → specific expected outputs. If you touch these functions, you must keep these tests passing. Do not change the expected output without understanding why the answer changed and verifying it against an independent reference implementation.
-
-### E2E tests (must stay at 12 passing)
-
-```bash
-pnpm e2e
-```
-
-If you add a new screen or significantly change existing UI behavior, add or update an E2E test.
-
-### The full quality gate
-
-```bash
-pnpm ci
-```
-
-All quality gates must pass before opening a PR. No exceptions.
-
-### After touching crypto or the pack format
-
-```bash
-# Regenerate the demo pack
 pnpm demo
-
-# Verify it still passes
-pnpm verify -- packages/cli/examples/sample_runs/latest.proofpack
-
-# The output must end with:
-# VERIFIED (6/6 checks passed)
+pnpm verify -- examples/sample_runs/latest.proofpack
+pnpm dev
 ```
 
-If the pack format changes in any way, the golden fixture must be regenerated and committed.
+`pnpm dev` starts the Fastify API and Next.js workbench. The workbench is available at [http://localhost:3000](http://localhost:3000).
 
----
+## Repository Map
 
-## Submitting a Pull Request
+```text
+ProofPack/
+├── packages/
+│   ├── core/             # Pack format, verifier, archive safety, policy, crypto
+│   └── cli/              # CLI commands: demo, verify, diff
+├── apps/
+│   ├── api/              # Fastify API routes for local/service use
+│   └── web/              # Next.js Evidence Workbench and Next API routes
+├── tests/e2e/            # Playwright production-workbench tests
+├── docs/                 # Architecture, security, release, publishing, assets
+├── config/               # Trust-store and dependency policy config
+└── scripts/              # Release, SBOM, semver, CSS, and policy gates
+```
 
-1. **Push your branch** and open a PR against `main`.
-2. **Fill out the PR template** — describe what changed, why, and how you tested it.
-3. **Checklist before requesting review:**
-   - [ ] `pnpm check` passes (zero TypeScript errors, zero lint warnings, zero prettier diffs)
-   - [ ] `pnpm test` shows 175 passing (or more, if you added tests)
-   - [ ] `pnpm e2e` shows 12 passing (or more, if you added tests)
-   - [ ] `pnpm demo && pnpm verify` exits 0 (if you touched core, CLI, or the pack format)
-   - [ ] No new `any` types introduced
-   - [ ] No `console.log` left in non-test code (use `console.warn` or `console.error` where appropriate)
-   - [ ] Commit messages follow [Conventional Commits](#commit-messages)
+Dependency direction is one-way: `apps/web`, `apps/api`, and `packages/cli` depend on `packages/core`. Core must not import application code.
 
----
+## Quality Gates
 
-## What's In Scope
+Run the smallest relevant gate while iterating, then run the full release gate before requesting review.
 
-### Welcome contributions
+```bash
+pnpm check          # TypeScript, ESLint, Prettier
+pnpm test           # Vitest unit/API/CLI/core suite
+pnpm build          # Core, CLI, API, web production builds
+pnpm web:css:check  # Tailwind utility generation regression
+pnpm e2e            # Playwright against production Next output
+pnpm release:check  # CI gate plus CLI sample-pack verification
+```
 
-- **Bug fixes** with regression tests
-- **New event types** — add to `packages/core/src/types/event.ts` and the demo in `packages/cli/src/demo/events.ts`
-- **New policy matchers** — extend `PolicyRule.when` in `packages/core/src/types/policy.ts` and implement in `packages/core/src/policy/engine.ts`
-- **Improved Merkle proof formats** — e.g., consistency proofs for append-only streams
-- **Additional verification checks** — e.g., timestamp ordering validation
-- **UI improvements** to existing screens
-- **Documentation improvements**
-- **Performance improvements** with benchmarks proving the improvement
+Release and supply-chain gates:
 
-### Out of scope
+```bash
+pnpm policy:deps
+pnpm audit --audit-level=moderate
+pnpm stress:core
+pnpm sbom:generate
+pnpm release:artifacts
+pnpm release:attest
+pnpm release:attest:verify
+pnpm repro:check
+pnpm changelog:status
+```
 
-- **Switching cryptographic primitives.** Ed25519 and SHA-256 are intentional. The `@noble/*` library family was chosen specifically for its audit record and pure-TypeScript isomorphic design.
-- **Adding a database or centralized service.** Offline verifiability is a core feature, not a limitation.
-- **Breaking changes to the pack format** without a `schema_version` bump and migration path. The pack format is the public API.
-- **Bundling third-party services** (telemetry, analytics, cloud storage integrations).
-- **Changing the policy engine from YAML to code.** YAML is intentionally declarative and auditable.
-- **React Native / mobile port.** Out of scope for this project.
+## Change Rules
 
-If you're unsure, open an issue first.
-
----
+- Keep changes focused. One PR should have one reason to exist.
+- Add regression tests for bug fixes.
+- Add happy-path and failure-path tests for new verifier, API, archive, redaction, or trust behavior.
+- Do not change cryptographic primitives without an issue, design note, and migration plan.
+- Do not weaken archive limits, path traversal checks, signature verification, or trust-store validation for convenience.
+- Do not introduce network telemetry, accounts, billing, or persistent hosted-state dependencies into the OSS verifier path.
+- Keep pack-format changes explicit and versioned through schema metadata.
 
 ## Code Standards
 
-### TypeScript
+TypeScript:
 
-- **Strict mode is non-negotiable.** `@typescript-eslint/no-explicit-any` is an error, not a warning. If you find yourself reaching for `any`, use `unknown` + a type guard instead.
-- **Zod at every trust boundary.** Any data that crosses a trust boundary (file I/O, HTTP, user input) must be validated with a Zod schema before being used as a typed value.
-- **Pure functions for crypto.** All functions in `packages/core/src/crypto/` should be pure — no side effects, no global state.
-- **Barrel exports only from `index.ts`.** Don't import internal modules directly from other packages.
+- Strict mode is required.
+- Avoid `any`; prefer `unknown` plus type guards.
+- Public functions exported from packages should have explicit return types.
+- Validate untrusted JSON at the boundary with the existing Zod schemas or a matching local parser.
+- Use named exports.
 
-### React / Next.js
+Core:
 
-- **`"use client"` only when necessary.** Prefer React Server Components. Add `"use client"` only when you need browser APIs, event handlers, or stateful hooks.
-- **Zustand for cross-screen state.** Don't use component-local state for data that needs to be shared across screens. Add actions to `apps/web/src/lib/store.ts`.
-- **No inline styles for layout.** Use Tailwind utilities. Inline styles are acceptable for values that can't be expressed as Tailwind utilities (dynamic, computed values).
+- Crypto helpers should remain deterministic and side-effect free.
+- Verifier failures should use stable error/check codes with actionable hints.
+- Archive parsing must preserve path traversal, entry count, size, ratio, symlink, and duplicate-entry defenses.
+- Redaction must preserve derivation metadata linking public projections back to the original receipt hash.
 
-### Error handling
+Web:
 
-- **Throw descriptive errors.** Error messages should explain what went wrong and (where possible) why, not just that something failed.
-- **Don't swallow errors.** No empty `catch` blocks. If you catch an error, either re-throw it, wrap it with more context, or convert it to a user-facing message.
-- **No `try/catch` around impossible failures.** Only catch errors that can realistically occur.
+- The first screen must stay a usable verifier, not a marketing landing page.
+- Use the Security Workbench direction in [DESIGN.md](./DESIGN.md).
+- Preserve keyboard navigation, reduced-motion behavior, mobile bounds, and production Playwright coverage.
+- Keep Tailwind v4/PostCSS configured through `apps/web/postcss.config.mjs`; `pnpm web:css:check` must remain green.
 
-### File organization
+## Pull Request Checklist
 
-- **One concept per file.** `hash.ts` contains hashing functions. `merkle.ts` contains Merkle tree functions. Don't mix concerns.
-- **Types go in `types/`.** Shared TypeScript types and Zod schemas belong in `packages/core/src/types/`, not scattered across implementation files.
-
----
+- [ ] The change has a clear scope and reason.
+- [ ] `pnpm release:check` passes locally.
+- [ ] Relevant security/supply-chain gates pass when touched.
+- [ ] Public docs are updated for user-visible behavior.
+- [ ] New or changed public package behavior has a changeset.
+- [ ] No secrets, generated build output, `.env` files, or large binaries are committed.
+- [ ] Screenshots or Playwright artifacts are included when the UI meaningfully changes.
 
 ## Commit Messages
 
-ProofPack uses [Conventional Commits](https://www.conventionalcommits.org/). Format:
+Use Conventional Commits:
 
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-### Types
-
-| Type       | When to use                                 |
-| ---------- | ------------------------------------------- |
-| `feat`     | New capability                              |
-| `fix`      | Bug fix                                     |
-| `test`     | Adding or updating tests                    |
-| `docs`     | Documentation only                          |
-| `refactor` | Code reorganization without behavior change |
-| `perf`     | Performance improvement                     |
-| `chore`    | Build scripts, dependencies, config         |
-| `ci`       | CI/CD changes                               |
-
-### Scopes
-
-| Scope  | Maps to         |
-| ------ | --------------- |
-| `core` | `packages/core` |
-| `cli`  | `packages/cli`  |
-| `api`  | `apps/api`      |
-| `web`  | `apps/web`      |
-| `e2e`  | `tests/e2e`     |
-
-### Examples
-
-```
-feat(core): add consistency proof support for append-only streams
-
-fix(verifier): handle packs with zero policy rules (default-deny with no decisions)
-
-test(e2e): add upload-flow spec for user-supplied non-demo packs
-
-docs(architecture): expand Merkle tree design section with proof size analysis
-
-chore(deps): upgrade @noble/ed25519 to 2.2.0
+```text
+feat(core): add progress events to pack verification
+fix(api): reject duplicate archive entries
+docs(web): document workbench verification states
+test(e2e): cover keyboard-only demo verification
+chore(deps): patch transitive audit advisories
 ```
 
-### Commit body
+The body should explain why the change is necessary when the reason is not obvious from the diff.
 
-The commit body should explain **why**, not what. The diff shows what changed. The body explains the reasoning:
+## Scope Boundaries
 
-```
-fix(verifier): handle packs with zero policy rules
+In scope:
 
-When an agent run has no policy applied (policy.yml has an empty rules array),
-the verifier was treating the empty decisions array as a schema error because
-decisions.jsonl would contain zero lines.
+- verifier correctness
+- pack-format clarity
+- archive and redaction hardening
+- trust-store and key-lifecycle workflows
+- CLI/API/web parity
+- documentation, tests, release integrity, and accessibility
 
-The fix validates the decisions array length against policy.rules.length, not
-against a hardcoded minimum.
-```
+Out of scope for v1:
 
----
+- hosted accounts, teams, billing, or databases
+- telemetry by default
+- Rust/WASM verifier rewrites without benchmark evidence
+- mobile-native ports
+- breaking pack-format changes without a versioned migration path
 
-## Questions?
+## Questions
 
-Open a GitHub Discussion or file an issue with the `question` label. We'll do our best to respond promptly.
+Open a GitHub issue or discussion with the smallest reproducible example you can provide. For security issues, follow [SECURITY.md](./SECURITY.md) instead of opening a public issue.

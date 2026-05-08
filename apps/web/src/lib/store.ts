@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { EventPreview, VerificationCheck } from '@proofpack/core';
+import type { EventPreview, MerkleFile, Receipt, VerificationCheck } from '@proofpack/core';
 
 export type AppScreen =
   | 'verify'
@@ -41,6 +41,8 @@ export interface VerifyApiResponse {
   events_preview: EventPreview[];
   policy_rules?: PolicyRulePreview[];
   decisions?: DecisionPreview[];
+  receipt?: Receipt;
+  merkle?: MerkleFile;
   error?: { code: string; message: string; hint?: string };
 }
 

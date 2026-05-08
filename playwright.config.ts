@@ -24,9 +24,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `pnpm --filter @proofpack/web dev --port ${E2E_PORT}`,
+    command: `pnpm --filter @proofpack/web build && pnpm --filter @proofpack/web exec next start --port ${E2E_PORT}`,
     port: E2E_PORT,
     reuseExistingServer: false,
-    timeout: 30_000,
+    timeout: 60_000,
   },
 });

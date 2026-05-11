@@ -243,3 +243,58 @@ describe('POST /api/verify trust-store errors', () => {
     expect(json.error.hint).toContain('PROOFPACK_TRUST_STORE_PATH');
   });
 });
+
+describe('POST /api/verify rate limiting', () => {
+  let app: FastifyInstance;
+  const previousGlobalMax = process.env.PROOFPACK_RATE_LIMIT_MAX;
+  const previousVerifyMax = process.env.PROOFPACK_VERIFY_RATE_LIMIT_MAX;
+  const previousVerifyWindow = process.env.PROOFPACK_VERIFY_RATE_LIMIT_WINDOW;
+
+  beforeAll(async () => {
+    process.env.PROOFPACK_RATE_LIMIT_MAX = '100';
+    process.env.PROOFPACK_VERIFY_RATE_LIMIT_MAX = '1';
+    process.env.PROOFPACK_VERIFY_RATE_LIMIT_WINDOW = '1 minute';
+    app = await buildServer();
+  });
+
+  afterAll(async () => {
+    if (previousGlobalMax === undefined) {
+      delete process.env.PROOFPACK_RATE_LIMIT_MAX;
+    } else {
+      process.env.PROOFPACK_RATE_LIMIT_MAX = previousGlobalMax;
+    }
+    if (previousVerifyMax === undefined) {
+      delete process.env.PROOFPACK_VERIFY_RATE_LIMIT_MAX;
+    } else {
+      process.env.PROOFPACK_VERIFY_RATE_LIMIT_MAX = previousVerifyMax;
+    }
+    if (previousVerifyWindow === undefined) {
+      delete process.env.PROOFPACK_VERIFY_RATE_LIMIT_WINDOW;
+    } else {
+      process.env.PROOFPACK_VERIFY_RATE_LIMIT_WINDOW = previousVerifyWindow;
+    }
+    await app.close();
+  });
+
+  it('applies the tighter upload verification request budget', async () => {
+    const pack = buildDemoPack();
+    const zip = await packToZipBuffer(pack);
+    const { body, contentType } = buildMultipartPayload(zip);
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+    expect(first.statusCode).toBe(200);
+
+    const second = await app.inject({
+      method: 'POST',
+      url: '/api/verify',
+      payload: body,
+      headers: { 'content-type': contentType },
+    });
+    expect(second.statusCode).toBe(429);
+  });
+});

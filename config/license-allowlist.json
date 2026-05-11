@@ -12,7 +12,7 @@
     "LGPL-3.0-or-later"
   ],
   "allowed_packages_by_license": {
-    "MPL-2.0": ["lightningcss", "lightningcss-darwin-arm64"]
+    "MPL-2.0": ["lightningcss", "lightningcss-darwin-arm64", "lightningcss-linux-x64-gnu"]
   },
   "allowed_unknown_license_packages": ["spawndamnit"]
 }

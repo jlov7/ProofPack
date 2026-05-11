@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Portable cryptographic receipts and evidence workbench for AI agent runs",
-  "packageManager": "pnpm@11.0.4",
+  "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "concurrently \"pnpm --filter @proofpack/api dev\" \"pnpm --filter @proofpack/web dev\"",
     "build": "pnpm --filter @proofpack/core build && pnpm --filter @proofpack/cli build && pnpm --filter @proofpack/api build && pnpm --filter @proofpack/web build",

@@ -57,5 +57,5 @@ describe.skipIf(!RUN_STRESS)('merkle stress suite (opt-in)', () => {
     expect(rootElapsed).toBeLessThanOrEqual(ROOT_BUDGET_MS);
     expect(verifyElapsed).toBeLessThanOrEqual(SAMPLE_VERIFY_BUDGET_MS);
     expect(deltaMb).toBeLessThanOrEqual(MEMORY_DELTA_BUDGET_MB);
-  });
+  }, 60_000);
 });
